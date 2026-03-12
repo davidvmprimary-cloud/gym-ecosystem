@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  weight        Float?    // kg
+  height        Float?    // cm
+  birthDate     DateTime?
+  defaultImprovementTarget Float @default(2.5) // porcentaje global
+  createdAt     DateTime  @default(now())
+
+  splits        Split[]
+  sessions      Session[]
+  nutritionLogs NutritionLog[]
+}
+
+model Split {
+  id        String     @id @default(uuid())
+  userId    String
+  name      String     // "Push", "Pull", "Legs"
+  order     Int        // 1, 2, 3 — define la secuencia del ciclo
+  user      User       @relation(fields: [userId], references: [id])
+  exercises Exercise[]
+  sessions  Session[]
+}
+
+model Exercise {
+  id                      String   @id @default(uuid())
+  splitId                 String
+  name                    String
+  order                   Int
+  improvementTarget       Float?   // override personal del ejercicio, null = hereda del user
+  split                   Split    @relation(fields: [splitId], references: [id])
+  sets                    Set[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  splitId   String
+  date      DateTime @default(now())
+  notes     String?
+  user      User     @relation(fields: [userId], references: [id])
+  split     Split    @relation(fields: [splitId], references: [id])
+  sets      Set[]
+}
+
+model Set {
+  id          String   @id @default(uuid())
+  sessionId   String
+  exerciseId  String
+  setNumber   Int
+  weightKg    Float
+  reps        Int
+  session     Session  @relation(fields: [sessionId], references: [id])
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model NutritionLog {
+  id           String   @id @default(uuid())
+  userId       String
+  date         DateTime @default(now())
+  calories     Int
+  proteinG     Float
+  carbsG       Float
+  fatG         Float
+  notes        String?
+  user         User     @relation(fields: [userId], references: [id])
+}
