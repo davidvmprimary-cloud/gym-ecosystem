@@ -1,0 +1,17 @@
+{
+  "name": "GymTracker",
+  "short_name": "GymTracker",
+  "description": "Aplicación web progresiva de seguimiento de entrenamiento y nutrición.",
+  "start_url": "/workout",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/ico",
+      "purpose": "maskable any"
+    }
+  ]
+}
