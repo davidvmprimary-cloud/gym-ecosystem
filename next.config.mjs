@@ -14,7 +14,8 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // your custom config here
+  // Silence turbopack warning since Next 16 uses it by default
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);
