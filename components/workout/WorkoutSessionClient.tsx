@@ -18,7 +18,7 @@ interface WorkoutSessionClientProps {
 
 export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }: WorkoutSessionClientProps) {
   const router = useRouter()
-  const { isActive, splitId, startSession, finishSession, sets } = useWorkoutSession()
+  const { isActive, splitId, startSession, finishSession, sets, draftSets } = useWorkoutSession()
   const [prTypes, setPrTypes] = useState<string[]>([])
   const [showPR, setShowPR] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
@@ -34,7 +34,14 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
     setIsFinishing(true)
 
     try {
-      const grouped = sets.reduce((acc, set) => {
+      const hybridSets = [...sets]
+      for (const [exId, draft] of Object.entries(draftSets)) {
+        if (draft.weightKg > 0 && draft.reps > 0) {
+          hybridSets.push({ id: crypto.randomUUID(), exerciseId: exId, weightKg: draft.weightKg, reps: draft.reps })
+        }
+      }
+
+      const grouped = hybridSets.reduce((acc, set) => {
         if (!acc[set.exerciseId]) {
           acc[set.exerciseId] = { exerciseId: set.exerciseId, sets: [] }
         }
@@ -78,6 +85,9 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
 
   // Count exercises with at least one set completed
   const completedExercises = new Set(sets.map(s => s.exerciseId)).size
+  const draftList = Object.values(draftSets).filter(d => d.weightKg > 0 && d.reps > 0)
+  const unsavedCount = draftList.length
+  const totalSetsCount = sets.length + unsavedCount
 
   return (
     <>
@@ -91,7 +101,7 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
         </div>
         <button 
           onClick={handleFinish} 
-          disabled={isFinishing || sets.length === 0}
+          disabled={isFinishing || totalSetsCount === 0}
           className="w-[80px] h-[34px] bg-gym-green-bg rounded-gym-pill flex items-center justify-center gap-1 text-[13px] font-semibold text-white disabled:opacity-50"
         >
           <CloudUpload className="w-4 h-4" />
@@ -121,7 +131,7 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
       <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gym-black/80 backdrop-blur-md border-t border-gym-border z-50 pb-safe">
         <button 
           onClick={handleFinish} 
-          disabled={isFinishing || sets.length === 0} 
+          disabled={isFinishing || totalSetsCount === 0} 
           className="w-full h-14 bg-gym-green-bg rounded-gym flex flex-col items-center justify-center relative disabled:opacity-50"
         >
           <div className="flex items-center gap-2">
@@ -131,7 +141,7 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-1.5 h-1.5 bg-gym-green-bright rounded-full pulse-dot"></span>
             <span className="text-[11px] text-white/80">
-              {sets.length} series marcadas
+              {totalSetsCount} series listas {unsavedCount > 0 && `(${unsavedCount} drafts)`}
             </span>
           </div>
         </button>

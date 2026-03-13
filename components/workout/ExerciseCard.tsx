@@ -10,11 +10,10 @@ import { ExerciseSettingsDrawer } from './ExerciseSettingsDrawer'
 import { updateExerciseTarget } from '@/app/actions/workout.actions'
 
 export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEven?: boolean }) {
-  const { sets, addSet } = useWorkoutSession()
+  const { sets, draftSets, updateDraft, commitDraft } = useWorkoutSession()
   const exerciseSets = sets.filter(s => s.exerciseId === exercise.id)
-
-  const [weight, setWeight] = useState('')
-  const [reps, setReps] = useState('')
+  
+  const draft = draftSets[exercise.id] || { weightKg: 0, reps: 0 }
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const improvementTarget = exercise.improvementTarget || 2.5
@@ -29,15 +28,8 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
   const progressPercent = 3.2 // mock value
 
   const handleAddSet = () => {
-    if (!weight || !reps) return
-    addSet({
-      id: crypto.randomUUID(),
-      exerciseId: exercise.id,
-      reps: parseInt(reps),
-      weightKg: parseFloat(weight)
-    })
-    setWeight('')
-    setReps('')
+    if (!draft.weightKg || !draft.reps) return
+    commitDraft(exercise.id)
   }
 
   const handleSaveTarget = async (newTarget: number) => {
@@ -87,8 +79,8 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
                   type="number"
                   inputMode="decimal"
                   placeholder={suggestion.suggestedWeightKg?.toString() || "0"}
-                  value={weight}
-                  onChange={e => setWeight(e.target.value)}
+                  value={draft.weightKg || ''}
+                  onChange={e => updateDraft(exercise.id, parseFloat(e.target.value) || 0, draft.reps)}
                   className="w-full bg-transparent text-[22px] font-bold text-gym-primary tabular-nums focus:outline-none placeholder-gym-muted/50 p-0 border-none"
                 />
                 <span className="text-[10px] text-gym-secondary -mt-1">KG</span>
@@ -99,8 +91,8 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
                   type="number"
                   inputMode="numeric"
                   placeholder={suggestion.suggestedReps?.toString() || "0"}
-                  value={reps}
-                  onChange={e => setReps(e.target.value)}
+                  value={draft.reps || ''}
+                  onChange={e => updateDraft(exercise.id, draft.weightKg, parseInt(e.target.value) || 0)}
                   className="w-full bg-transparent text-[22px] font-bold text-gym-primary tabular-nums text-right focus:outline-none placeholder-gym-muted/50 p-0 border-none"
                 />
                 <span className="text-[10px] text-gym-secondary -mt-1">REPS</span>
@@ -109,10 +101,10 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
           </div>
           <button 
             onClick={handleAddSet}
-            disabled={!weight || !reps}
+            disabled={!draft.weightKg || !draft.reps}
             className="w-12 h-12 border-2 border-gym-muted border-dashed rounded-gym flex items-center justify-center hover:bg-gym-dark-3 transition-colors disabled:opacity-50"
           >
-            {weight && reps ? (
+            {draft.weightKg && draft.reps ? (
               <Check className="text-gym-green-accent w-6 h-6 stroke-[3px]" />
             ) : (
               <span className="text-gym-muted text-[12px] font-bold">{exerciseSets.length + 1}</span>

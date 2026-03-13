@@ -26,11 +26,13 @@ interface WorkoutSessionState {
   isActive: boolean
   splitId: string | null
   sets: WorkoutSet[]
+  draftSets: Record<string, { weightKg: number; reps: number }>
   startSession: (splitId: string) => void
   addSet: (set: WorkoutSet) => void
   removeSet: (setId: string) => void
+  updateDraft: (exerciseId: string, weightKg: number, reps: number) => void
+  commitDraft: (exerciseId: string) => void
   finishSession: () => void
-  // Derived helpers could be computed in components or via get()
 }
 
 export const useWorkoutSession = create<WorkoutSessionState>()(
@@ -39,9 +41,10 @@ export const useWorkoutSession = create<WorkoutSessionState>()(
       isActive: false,
       splitId: null,
       sets: [],
+      draftSets: {},
 
       startSession: (splitId) => {
-        set({ isActive: true, splitId, sets: [] })
+        set({ isActive: true, splitId, sets: [], draftSets: {} })
       },
 
       addSet: (newSet) => {
@@ -56,10 +59,29 @@ export const useWorkoutSession = create<WorkoutSessionState>()(
         }))
       },
 
+      updateDraft: (exerciseId, weightKg, reps) => {
+        set((state) => ({
+          draftSets: {
+            ...state.draftSets,
+            [exerciseId]: { weightKg, reps }
+          }
+        }))
+      },
+
+      commitDraft: (exerciseId) => {
+        set((state) => {
+          const draft = state.draftSets[exerciseId]
+          if (!draft) return state
+
+          return {
+            sets: [...state.sets, { id: crypto.randomUUID(), exerciseId, weightKg: draft.weightKg, reps: draft.reps }],
+            draftSets: { ...state.draftSets, [exerciseId]: { weightKg: 0, reps: 0 } }
+          }
+        })
+      },
+
       finishSession: () => {
-        // En una app real, aquí enviaríamos los datos a la API.
-        // Si falla por falta de red, lo encolamos para reintento.
-        set({ isActive: false, splitId: null, sets: [] })
+        set({ isActive: false, splitId: null, sets: [], draftSets: {} })
       },
     }),
     {
