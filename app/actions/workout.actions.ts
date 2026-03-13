@@ -91,6 +91,19 @@ export async function finishWorkoutSession(input: z.infer<typeof FinishSessionSc
   return { sessionId: session.id, progressPct, newPRs: prResults }
 }
 
+export async function updateExerciseTarget(exerciseId: string, improvementTarget: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  await prisma.exercise.update({
+    where: { id: exerciseId },
+    data: { improvementTarget }
+  })
+
+  revalidatePath('/workout')
+}
+
 export async function getNextSplit(userId: string) {
   const last = await sessionRepository.getLastTrainedSplit(userId)
   const splits = await prisma.split.findMany({

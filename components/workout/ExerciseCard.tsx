@@ -6,6 +6,8 @@ import { suggestNextSet } from '@/lib/utils/suggestions'
 import { Check, Settings2, Circle } from 'lucide-react'
 import clsx from 'clsx'
 import { motion } from 'framer-motion'
+import { ExerciseSettingsDrawer } from './ExerciseSettingsDrawer'
+import { updateExerciseTarget } from '@/app/actions/workout.actions'
 
 export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEven?: boolean }) {
   const { sets, addSet } = useWorkoutSession()
@@ -13,6 +15,7 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
 
   const [weight, setWeight] = useState('')
   const [reps, setReps] = useState('')
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const improvementTarget = exercise.improvementTarget || 2.5
   
@@ -37,11 +40,12 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
     setReps('')
   }
 
-  // Pre-fill fields with suggestions when empty on focus could be one way, 
-  // but natively we pass suggestion to placeholder.
+  const handleSaveTarget = async (newTarget: number) => {
+    await updateExerciseTarget(exercise.id, newTarget)
+  }
   
   return (
-    <article className={clsx("p-4 mb-px transition-colors", isEven ? "bg-gym-dark-2" : "bg-gym-dark-1")}>
+    <article className={clsx("p-4 mb-px transition-colors relative", isEven ? "bg-gym-dark-2" : "bg-gym-dark-1")}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <h2 className="text-[16px] font-semibold text-gym-primary">{exercise.name}</h2>
@@ -49,7 +53,10 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
             +{progressPercent}%
           </span>
         </div>
-        <button className="text-gym-secondary hover:text-white transition-colors">
+        <button 
+          onClick={() => setIsSettingsOpen(true)}
+          className="text-gym-secondary hover:text-white transition-colors"
+        >
           <Settings2 className="w-5 h-5" />
         </button>
       </div>
@@ -113,6 +120,14 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
           </button>
         </div>
       </div>
+
+      <ExerciseSettingsDrawer 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        exerciseName={exercise.name}
+        currentImprovementTarget={improvementTarget}
+        onSave={handleSaveTarget}
+      />
     </article>
   )
 }
