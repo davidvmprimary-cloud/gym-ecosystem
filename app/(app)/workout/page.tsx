@@ -50,13 +50,8 @@ export default async function WorkoutPage() {
   const todayLabel = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold capitalize text-green-500">{todaySplit.name}</h1>
-        <p className="text-sm text-zinc-400 capitalize">{todayLabel}</p>
-      </div>
-
-      <WorkoutSessionClient split={todaySplit} daysSinceLastSession={daysSinceLastSession} />
+    <div className="min-h-screen bg-gym-black text-gym-primary">
+      <WorkoutSessionClient split={todaySplit} daysSinceLastSession={daysSinceLastSession} todayLabel={todayLabel} />
     </div>
   )
 }

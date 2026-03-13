@@ -1,31 +1,22 @@
 'use client'
 
-import clsx from 'clsx'
-
-export function GlobalProgressRing({ progress }: { progress: number }) {
-  const isPositive = progress >= 0
-  const isTargetMet = progress >= 2.5 // Mock global target
-
-  const colorClass = isTargetMet
-    ? 'text-green-500 border-green-500'
-    : isPositive
-    ? 'text-yellow-500 border-yellow-500'
-    : 'text-red-500 border-red-500'
+export function GlobalProgressRing({ progress, completed, total }: { progress: number, completed: number, total: number }) {
+  const pct = total > 0 ? (completed / total) * 100 : 0;
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 w-full">
-      <div
-        className={clsx(
-          'relative flex h-32 w-32 items-center justify-center rounded-full border-8 transition-colors',
-          colorClass
-        )}
-      >
-        <span className="text-2xl font-bold text-zinc-100">
-          {progress > 0 ? '+' : ''}
-          {progress.toFixed(1)}%
-        </span>
+    <section className="h-[120px] px-5 py-6 flex items-center justify-between border-b border-gym-border" data-purpose="progress-hero">
+      <div className="flex flex-col">
+        <span className="text-[11px] text-gym-secondary font-bold uppercase tracking-wide">Mejora Global</span>
+        <span className="text-[48px] font-bold text-gym-green-bright leading-tight">{progress > 0 ? '+' : ''}{progress.toFixed(1)}%</span>
+        <span className="text-[11px] text-gym-secondary">{completed} de {total} ejercicios completados</span>
       </div>
-      <p className="mt-4 text-xs font-medium text-zinc-400 tracking-wider">PROGRESO DE VOLUMEN</p>
-    </div>
+      <div className="relative flex items-center justify-center w-[72px] h-[72px]">
+        <svg className="circular-progress w-full h-full">
+          <circle cx="36" cy="36" fill="transparent" r="32" stroke="#1A1A1A" strokeWidth="6"></circle>
+          <circle cx="36" cy="36" fill="transparent" r="32" stroke="#4E8B5F" strokeDasharray="201" strokeDashoffset={201 - (201 * pct) / 100} strokeLinecap="round" strokeWidth="6"></circle>
+        </svg>
+        <span className="absolute text-[14px] font-semibold">{Math.round(pct)}%</span>
+      </div>
+    </section>
   )
 }

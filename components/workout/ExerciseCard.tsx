@@ -3,20 +3,19 @@
 import { useWorkoutSession } from '@/lib/hooks/useWorkoutSession'
 import { useState } from 'react'
 import { suggestNextSet } from '@/lib/utils/suggestions'
-import { Plus, Check, Circle } from 'lucide-react'
+import { Check, Settings2, Circle } from 'lucide-react'
 import clsx from 'clsx'
+import { motion } from 'framer-motion'
 
-export function ExerciseCard({ exercise }: { exercise: any }) {
+export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEven?: boolean }) {
   const { sets, addSet } = useWorkoutSession()
   const exerciseSets = sets.filter(s => s.exerciseId === exercise.id)
 
   const [weight, setWeight] = useState('')
   const [reps, setReps] = useState('')
 
-  // Placeholder target logic
   const improvementTarget = exercise.improvementTarget || 2.5
   
-  // Suggestion logic (mocking old volume for now)
   const suggestion = suggestNextSet({
     completedSetsVolume: exerciseSets.reduce((acc, s) => acc + (s.weightKg * s.reps), 0),
     previousSessionTotalVolume: 1500, // mock
@@ -24,7 +23,6 @@ export function ExerciseCard({ exercise }: { exercise: any }) {
     remainingSets: 3 - exerciseSets.length
   })
 
-  // Derive progress vs target
   const progressPercent = 3.2 // mock value
 
   const handleAddSet = () => {
@@ -39,70 +37,82 @@ export function ExerciseCard({ exercise }: { exercise: any }) {
     setReps('')
   }
 
+  // Pre-fill fields with suggestions when empty on focus could be one way, 
+  // but natively we pass suggestion to placeholder.
+  
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+    <article className={clsx("p-4 mb-px transition-colors", isEven ? "bg-gym-dark-2" : "bg-gym-dark-1")}>
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-semibold">{exercise.name}</h3>
-          <button className="text-[10px] text-green-500 opacity-80 hover:opacity-100 flex items-center gap-1">
-            Target: +{improvementTarget}% [editar]
-          </button>
+        <div className="flex items-center gap-2">
+          <h2 className="text-[16px] font-semibold text-gym-primary">{exercise.name}</h2>
+          <span className="bg-[#3D6B4720] text-gym-green-bright text-[11px] font-bold px-2 py-0.5 rounded-gym-pill">
+            +{progressPercent}%
+          </span>
         </div>
-        <div className={clsx(
-          "text-sm font-medium",
-          progressPercent >= improvementTarget ? "text-green-500" : progressPercent > 0 ? "text-yellow-500" : "text-red-500"
-        )}>
-          {progressPercent > 0 ? '+' : ''}{progressPercent}% ↑
-        </div>
+        <button className="text-gym-secondary hover:text-white transition-colors">
+          <Settings2 className="w-5 h-5" />
+        </button>
       </div>
-      
-      <div className="space-y-3">
+
+      <div className="space-y-2 mb-4">
         {exerciseSets.map((s, idx) => (
-          <div key={s.id} className="flex items-center gap-3">
-            <span className="w-12 text-sm text-zinc-400 text-right">Set {idx + 1}</span>
-            <div className="w-20 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-center text-sm text-zinc-300">
-              {s.weightKg}
+          <div key={s.id} className="flex items-center gap-3 h-12">
+            <div className="flex-1 bg-gym-dark-3 border-l-4 border-gym-green-accent rounded-r-[4px] h-full flex items-center px-3 justify-between">
+              <span className="tabular-nums text-[22px] font-bold text-gym-primary">
+                {s.weightKg} <span className="text-[14px] font-normal text-gym-secondary">kg</span>
+              </span>
+              <span className="tabular-nums text-[22px] font-bold text-gym-primary">
+                {s.reps} <span className="text-[14px] font-normal text-gym-secondary">reps</span>
+              </span>
             </div>
-            <span className="text-sm text-zinc-500">kg</span>
-            <div className="w-20 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-center text-sm text-zinc-300">
-              {s.reps}
+            <div className="w-12 h-12 bg-gym-green-accent rounded-gym flex items-center justify-center">
+              <Check className="text-white w-6 h-6 stroke-[3px]" />
             </div>
-            <span className="text-sm text-zinc-500">reps</span>
-            <Check className="h-4 w-4 text-green-500 ml-auto" />
           </div>
         ))}
 
-        {/* Current input set */}
-        <div className="flex items-center gap-3">
-          <span className="w-12 text-sm text-zinc-400 text-right">Set {exerciseSets.length + 1}</span>
-          <input 
-            type="number" 
-            inputMode="decimal" 
-            placeholder={suggestion.suggestedWeightKg.toString() || "0"} 
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-            className="w-20 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-center text-sm focus:border-green-500 focus:outline-none" 
-          />
-          <span className="text-sm text-zinc-500">kg</span>
-          <input 
-            type="number" 
-            inputMode="numeric" 
-            placeholder={suggestion.suggestedReps.toString() || "0"} 
-            value={reps}
-            onChange={e => setReps(e.target.value)}
-            className="w-20 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-center text-sm focus:border-green-500 focus:outline-none" 
-          />
-          <span className="text-sm text-zinc-500">reps</span>
-          <Circle className="h-4 w-4 text-zinc-600 ml-auto" />
+        {/* Current Set Input */}
+        <div className="flex items-center gap-3 h-12">
+          <div className="flex-1 bg-gym-dark-2 border-l-4 border-gym-muted rounded-r-[4px] h-full flex items-center px-3 justify-between">
+            <div className="flex items-center gap-3 w-full">
+              <div className="flex flex-col w-1/2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  placeholder={suggestion.suggestedWeightKg?.toString() || "0"}
+                  value={weight}
+                  onChange={e => setWeight(e.target.value)}
+                  className="w-full bg-transparent text-[22px] font-bold text-gym-primary tabular-nums focus:outline-none placeholder-gym-muted/50 p-0 border-none"
+                />
+                <span className="text-[10px] text-gym-secondary -mt-1">KG</span>
+              </div>
+              <div className="h-6 w-px bg-gym-border"></div>
+              <div className="flex flex-col w-1/2 items-end">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder={suggestion.suggestedReps?.toString() || "0"}
+                  value={reps}
+                  onChange={e => setReps(e.target.value)}
+                  className="w-full bg-transparent text-[22px] font-bold text-gym-primary tabular-nums text-right focus:outline-none placeholder-gym-muted/50 p-0 border-none"
+                />
+                <span className="text-[10px] text-gym-secondary -mt-1">REPS</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={handleAddSet}
+            disabled={!weight || !reps}
+            className="w-12 h-12 border-2 border-gym-muted border-dashed rounded-gym flex items-center justify-center hover:bg-gym-dark-3 transition-colors disabled:opacity-50"
+          >
+            {weight && reps ? (
+              <Check className="text-gym-green-accent w-6 h-6 stroke-[3px]" />
+            ) : (
+              <span className="text-gym-muted text-[12px] font-bold">{exerciseSets.length + 1}</span>
+            )}
+          </button>
         </div>
       </div>
-
-      <button 
-        onClick={handleAddSet}
-        className="mt-4 flex items-center gap-1 text-sm text-green-500 hover:text-green-400 font-medium"
-      >
-        <Plus className="h-4 w-4" /> Agregar set
-      </button>
-    </div>
+    </article>
   )
 }

@@ -20,6 +20,8 @@ model User {
   splits        Split[]
   sessions      Session[]
   nutritionLogs NutritionLog[]
+  personalRecords PersonalRecord[]
+  bodyWeights   BodyWeightLog[]
 }
 
 model Split {
@@ -40,6 +42,7 @@ model Exercise {
   improvementTarget       Float?   // override personal del ejercicio, null = hereda del user
   split                   Split    @relation(fields: [splitId], references: [id])
   sets                    Set[]
+  personalRecords         PersonalRecord[]
 }
 
 model Session {
@@ -48,6 +51,10 @@ model Session {
   splitId   String   @db.Uuid
   date      DateTime @default(now())
   notes     String?
+  totalVolume     Float?          // kg×reps sumado de todos los sets
+  durationMinutes Int?
+  perceivedEffort Int?            // 1-10 RPE subjetivo
+  progressPct     Float?          // % vs sesión anterior del mismo split
   user      User     @relation(fields: [userId], references: [id])
   split     Split    @relation(fields: [splitId], references: [id])
   sets      Set[]
@@ -60,6 +67,8 @@ model Set {
   setNumber   Int
   weightKg    Float
   reps        Int
+  volume           Float   @default(0)
+  isPersonalRecord Boolean @default(false)
   session     Session  @relation(fields: [sessionId], references: [id])
   exercise    Exercise @relation(fields: [exerciseId], references: [id])
 }
@@ -74,4 +83,25 @@ model NutritionLog {
   fatG         Float
   notes        String?
   user         User     @relation(fields: [userId], references: [id])
+}
+
+model PersonalRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  exerciseId  String   @db.Uuid
+  recordType  String   // "volume" | "weight" | "reps" | "estimated1rm"
+  value       Float
+  setId       String?  @db.Uuid
+  sessionId   String   @db.Uuid
+  achievedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+}
+
+model BodyWeightLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  weightKg  Float
+  date      DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }

@@ -45,6 +45,20 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-gym-black: #0C0C0C;
+  --color-gym-dark-1: #141414;
+  --color-gym-dark-2: #1A1A1A;
+  --color-gym-dark-3: #242424;
+  --color-gym-border: #1A1A1A;
+  --color-gym-primary: #F0F0F0;
+  --color-gym-secondary: #8A8A8A;
+  --color-gym-muted: #4A4A4A;
+  --color-gym-green-accent: #4E8B5F;
+  --color-gym-green-bright: #5FA870;
+  --color-gym-green-bg: #3D6B47;
+  --radius-gym: 10px;
+  --radius-gym-pill: 9999px;
 }
 
 :root {
@@ -125,5 +139,32 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.circular-progress {
+  transform: rotate(-90deg);
+}
+
+.pulse-dot {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
