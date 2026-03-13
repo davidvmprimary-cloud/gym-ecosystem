@@ -15,6 +15,11 @@ model User {
   height        Float?    // cm
   birthDate     DateTime?
   defaultImprovementTarget Float @default(2.5) // porcentaje global
+  maxRestDays   Int       @default(5)
+  targetCalories Int       @default(2500)
+  targetProtein  Float     @default(160)
+  targetCarbs    Float     @default(250)
+  targetFat      Float     @default(70)
   createdAt     DateTime  @default(now())
 
   splits        Split[]

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { MacroBalance } from '@/components/nutrition/MacroBalance'
 import { useNutritionStore } from '@/lib/stores/nutrition.store'
@@ -16,11 +16,10 @@ const MEAL_LABELS: Record<string, string> = {
 
 export default function NutritionPage() {
   const { selectedDate, setDate, entries, setEntries } = useNutritionStore()
+  const [targets, setTargets] = useState({ calories: 2500, protein: 160, carbs: 280, fat: 80 })
   
   // Use state for local date object to format it easily
   const dateObj = new Date(selectedDate)
-
-  const targets = { calories: 2500, protein: 160, carbs: 280, fat: 80 }
 
   useEffect(() => {
     async function loadData() {
@@ -40,7 +39,24 @@ export default function NutritionPage() {
         console.error(e)
       }
     }
+    async function loadUserTargets() {
+      try {
+        const response = await fetch('/api/user/preferences')
+        if (response.ok) {
+          const user = await response.json()
+          setTargets({
+            calories: user.targetCalories,
+            protein: user.targetProtein,
+            carbs: user.targetCarbs,
+            fat: user.targetFat
+          })
+        }
+      } catch (e) {
+        console.error("Failed to load targets", e)
+      }
+    }
     loadData()
+    loadUserTargets()
   }, [selectedDate, setEntries])
 
   const handlePrevDay = () => {

@@ -114,3 +114,24 @@ export async function getNextSplit(userId: string) {
   const currentIndex = splits.findIndex(s => s.id === last.split.id)
   return splits[(currentIndex + 1) % splits.length]
 }
+
+export async function updateUserPreferences(data: {
+  defaultImprovementTarget?: number
+  maxRestDays?: number
+  targetCalories?: number
+  targetProtein?: number
+  targetCarbs?: number
+  targetFat?: number
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data
+  })
+
+  revalidatePath('/profile')
+  revalidatePath('/nutrition')
+}
