@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Dumbbell, ChevronRight, TrendingUp, Apple, Moon, Settings2, LogOut } from 'lucide-react'
+import { Plus, Dumbbell, ChevronRight, TrendingUp, Apple, Moon, Settings2, LogOut, Camera } from 'lucide-react'
 import { SliderDrawer } from '@/components/ui/SliderDrawer'
 import { MacrosDrawer } from '@/components/ui/MacrosDrawer'
 import { updateUserPreferences } from '@/app/actions/workout.actions'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { SplitEditorDrawer } from '@/components/profile/SplitEditorDrawer'
+import { IdentityDrawer } from '@/components/profile/IdentityDrawer'
+import { BodyStatsDrawer } from '@/components/profile/BodyStatsDrawer'
 
-export function ProfileClient({ user, isLimited = false }: { user: any, isLimited?: boolean }) {
+export function ProfileClient({ user, memberSince, isLimited = false }: { user: any, memberSince?: string, isLimited?: boolean }) {
   const router = useRouter()
   // Config Modals State
   const [isImprovementOpen, setIsImprovementOpen] = useState(false)
@@ -17,6 +19,8 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
   const [isMacrosOpen, setIsMacrosOpen] = useState(false)
   const [isSplitEditorOpen, setIsSplitEditorOpen] = useState(false)
   const [selectedSplit, setSelectedSplit] = useState<any>(null)
+  const [isIdentityOpen, setIsIdentityOpen] = useState(false)
+  const [isBodyStatsOpen, setIsBodyStatsOpen] = useState(false)
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -48,6 +52,31 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
 
   return (
     <>
+      {/* Identity Card */}
+      <section 
+        className="flex flex-col items-center mb-8 pt-4 cursor-pointer group"
+        onClick={() => setIsIdentityOpen(true)}
+      >
+        <div className="relative mb-4 transition-transform group-active:scale-95">
+          <div className="w-[80px] h-[80px] rounded-full border-2 border-gym-green-bg bg-gym-dark-3 flex items-center justify-center overflow-hidden">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[26px] font-bold text-gym-primary">
+                {user.name ? user.name.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="absolute bottom-0 right-0 w-[26px] h-[26px] bg-gym-dark-1 border border-gym-dark-3 rounded-full flex items-center justify-center shadow-lg cursor-pointer group-hover:bg-gym-dark-2 transition-colors">
+            <Camera className="w-3.5 h-3.5 text-gym-secondary" />
+          </div>
+        </div>
+        <h1 className="text-[22px] font-bold text-gym-primary group-hover:text-gym-green-accent transition-colors">
+          {user.name || user.email?.split('@')[0]}
+        </h1>
+        {memberSince && <p className="text-[11px] text-gym-secondary mt-1">Miembro desde {memberSince}</p>}
+      </section>
+
       <SliderDrawer
         isOpen={isImprovementOpen}
         onClose={() => setIsImprovementOpen(false)}
@@ -84,6 +113,47 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
         split={selectedSplit}
         defaultOrder={(user.splits?.length || 0) + 1}
       />
+
+      <IdentityDrawer 
+        isOpen={isIdentityOpen}
+        onClose={() => setIsIdentityOpen(false)}
+        currentName={user.name || ''}
+        currentAvatar={user.avatarUrl || ''}
+      />
+
+      <BodyStatsDrawer 
+        isOpen={isBodyStatsOpen}
+        onClose={() => setIsBodyStatsOpen(false)}
+        currentWeight={user.weight || 0}
+        currentHeight={user.height || 0}
+      />
+
+      {/* Training Program */}
+      {!isLimited && (
+        <section className="mb-10">
+          <div 
+            onClick={() => setIsBodyStatsOpen(true)}
+            className="bg-gym-dark-1 rounded-[14px] flex h-[68px] cursor-pointer hover:bg-gym-dark-2 transition-colors active:scale-[0.98]"
+          >
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <span className="text-[20px] font-bold tabular-nums text-gym-primary">{user.weight || '--'} kg</span>
+              <span className="text-[11px] text-gym-secondary">Peso</span>
+            </div>
+            <div className="w-[1px] h-[32px] bg-gym-border self-center"></div>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <span className="text-[20px] font-bold tabular-nums text-gym-primary">{user.height || '--'} cm</span>
+              <span className="text-[11px] text-gym-secondary">Altura</span>
+            </div>
+            <div className="w-[1px] h-[32px] bg-gym-border self-center"></div>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <span className="text-[20px] font-bold tabular-nums text-gym-primary">
+                {user.birthDate ? new Date().getFullYear() - new Date(user.birthDate).getFullYear() : '--'} a
+              </span>
+              <span className="text-[11px] text-gym-secondary">Edad</span>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Training Program */}
       {!isLimited && (

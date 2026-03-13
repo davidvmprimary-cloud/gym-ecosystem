@@ -37,45 +37,11 @@ export default async function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gym-black text-gym-primary p-6 pb-24">
-      {/* Identity Card */}
-      <section className="flex flex-col items-center mb-8 pt-4">
-        <div className="relative mb-4">
-          <div className="w-[80px] h-[80px] rounded-full border-2 border-gym-green-bg bg-gym-dark-3 flex items-center justify-center">
-            <span className="text-[26px] font-bold text-gym-primary">
-              {dbUser.name ? dbUser.name.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className="absolute bottom-0 right-0 w-[26px] h-[26px] bg-gym-dark-1 border border-gym-dark-3 rounded-full flex items-center justify-center shadow-lg">
-            <Camera className="w-3.5 h-3.5 text-gym-secondary" />
-          </div>
-        </div>
-        <h1 className="text-[22px] font-bold text-gym-primary">{dbUser.name || user.email?.split('@')[0]}</h1>
-        <p className="text-[11px] text-gym-secondary mt-1">Miembro desde {memberSince}</p>
-      </section>
-
-      {/* Body Stats */}
-      <section className="mb-10">
-        <div className="bg-gym-dark-1 rounded-[14px] flex h-[68px]">
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <span className="text-[20px] font-bold tabular-nums text-gym-primary">{dbUser.weight || '--'} kg</span>
-            <span className="text-[11px] text-gym-secondary">Peso</span>
-          </div>
-          <div className="w-[1px] h-[32px] bg-gym-border self-center"></div>
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <span className="text-[20px] font-bold tabular-nums text-gym-primary">{dbUser.height || '--'} cm</span>
-            <span className="text-[11px] text-gym-secondary">Altura</span>
-          </div>
-          <div className="w-[1px] h-[32px] bg-gym-border self-center"></div>
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <span className="text-[20px] font-bold tabular-nums text-gym-primary">
-              {dbUser.birthDate ? new Date().getFullYear() - new Date(dbUser.birthDate).getFullYear() : '--'} a
-            </span>
-            <span className="text-[11px] text-gym-secondary">Edad</span>
-          </div>
-        </div>
-      </section>
-
-      <ProfileClient user={dbUser} />
+      <ProfileClient 
+        user={dbUser} 
+        isLimited={false} 
+        memberSince={memberSince}
+      />
     </div>
   )
 }
