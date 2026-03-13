@@ -13,19 +13,25 @@ export default async function ProfilePage() {
   }
 
   // Fetch the full User record from Prisma
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: {
-      splits: {
-        include: {
-          exercises: true
-        },
-        orderBy: { order: 'asc' }
-      }
-    }
-  })
+  let dbUser: any = null
+  try {
+    const { ensureUserExists } = await import('@/lib/auth/ensure-user')
+    dbUser = await ensureUserExists(user.id, user.email!)
+  } catch (error) {
+    console.error('Error ensuring user exists:', error)
+  }
 
-  if (!dbUser) return null
+  if (!dbUser) {
+    return (
+      <div className="min-h-screen bg-gym-black text-gym-primary p-6 flex flex-col items-center justify-center gap-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-xl font-bold">Error de Perfil</h1>
+          <p className="text-gym-secondary text-sm">No pudimos cargar tu información. Intenta cerrar sesión y volver a entrar.</p>
+        </div>
+        <ProfileClient user={{ id: user.id, email: user.email }} isLimited />
+      </div>
+    )
+  }
 
   const memberSince = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric' }).format(new Date(dbUser.createdAt))
 
