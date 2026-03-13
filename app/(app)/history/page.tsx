@@ -2,12 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma/client'
 import { redirect } from 'next/navigation'
 import { VolumeChart } from '@/components/history/VolumeChart'
-import { WeeklyFrequencyChart } from '@/components/history/WeeklyFrequencyChart'
+import { FrequencyHeatmap } from '@/components/history/FrequencyHeatmap'
 import { WeightChart } from '@/components/history/WeightChart'
-import { Calendar, TrendingDown } from 'lucide-react'
+import { CalendarDays, TrendingUp, Trophy, ChevronRight, Flame } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { getBodyWeightHistory } from '@/app/actions/user.actions'
+import { calculateCurrentStreak, calculateVolumeTrend } from '@/lib/utils/stats'
 
 export default async function HistoryPage() {
   const supabase = await createClient()
@@ -18,99 +19,153 @@ export default async function HistoryPage() {
   // Fetch real sessions
   const sessions = await prisma.session.findMany({
     where: { userId: user.id },
-    include: { split: true },
+    include: { 
+      split: true,
+      sets: {
+        where: { isPersonalRecord: true }
+      }
+    },
     orderBy: { date: 'asc' }
   })
 
-  // Prepare volume data for AreaChart
+  const weights = await getBodyWeightHistory()
+  
+  // Calculate Stats
+  const sessionDates = sessions.map(s => s.date)
+  const streak = calculateCurrentStreak(sessionDates)
+  const volumeTrend = calculateVolumeTrend(sessions.map(s => ({ volume: s.totalVolume || 0, date: s.date })))
+  
+  const totalVolume = sessions.reduce((sum, s) => sum + (s.totalVolume || 0), 0)
+
+  // Prepare chart data
   const volumeData = sessions.map(s => ({
     date: s.date.toISOString(),
     volume: s.totalVolume || 0,
-    progressPct: s.progressPct || 0
-  }))
-
-  // Prepare frequency data
-  const frequencyData = sessions.map(s => ({
-    date: s.date.toISOString(),
     splitName: s.split?.name
   }))
 
-  // Fetch weights
-  const weights = await getBodyWeightHistory()
-
-  // Reversed sessions for history list
   const recentSessions = [...sessions].reverse().slice(0, 10)
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex justify-between items-end px-1">
-        <div>
-          <h1 className="text-[24px] font-bold text-gym-primary">Evolución</h1>
-          <p className="text-[12px] text-gym-secondary mt-1">Tu progreso físico y de fuerza</p>
+    <div className="min-h-screen bg-[#0C0C0C] text-[#F0F0F0] font-sans pb-24">
+      {/* Header */}
+      <header className="p-5 pb-2 sticky top-0 bg-[#0C0C0C]/90 backdrop-blur-md z-50">
+        <h1 className="text-[22px] font-bold text-[#F0F0F0]">Progreso</h1>
+      </header>
+
+      {/* Time Range Selector */}
+      <nav className="px-5 mb-6 sticky top-[60px] bg-[#0C0C0C]/90 backdrop-blur-md z-40 py-2">
+        <div className="bg-[#141414] p-1 rounded-full flex justify-between items-center text-[11px] font-medium text-[#8A8A8A]">
+          <button className="flex-1 py-1.5 rounded-full text-center">1S</button>
+          <button className="flex-1 py-1.5 rounded-full text-center bg-[#3D6B47] text-white">1M</button>
+          <button className="flex-1 py-1.5 rounded-full text-center">3M</button>
+          <button className="flex-1 py-1.5 rounded-full text-center">6M</button>
+          <button className="flex-1 py-1.5 rounded-full text-center">1A</button>
         </div>
-        <div className="bg-gym-dark-2 px-3 py-1.5 rounded-full border border-gym-border flex items-center gap-2">
-          <TrendingDown className="w-3.5 h-3.5 text-gym-green-accent" />
-          <span className="text-[11px] font-medium text-gym-primary tabular-nums">
-            {weights.length > 1 ? (weights[weights.length-1].weightKg - weights[0].weightKg).toFixed(1) : '0.0'} kg
-          </span>
-        </div>
-      </div>
+      </nav>
 
-      <section className="bg-gym-dark-1 border border-gym-border rounded-[20px] p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-[14px] font-semibold text-gym-primary flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-gym-green-accent"></div>
-            Peso Corporal
-          </h2>
-          <span className="text-[11px] text-gym-secondary tabular-nums italic">últimos {weights.length} registros</span>
-        </div>
-        <WeightChart data={weights} />
-      </section>
-
-      <section>
-        <h2 className="text-[14px] font-semibold text-gym-primary px-1 mb-4">Volumen Global</h2>
-        {volumeData.length > 0 ? (
-          <VolumeChart data={volumeData} />
-        ) : (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 text-center text-zinc-500 text-sm">
-            Aún no hay datos suficientes para mostrar el gráfico.
-          </div>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-200">Frecuencia de Entrenamiento</h2>
-        <WeeklyFrequencyChart sessions={frequencyData} />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-zinc-200">Historial de Sesiones</h2>
-        {recentSessions.length > 0 ? (
-          <div className="space-y-3">
-            {recentSessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-4 active:scale-[0.98] transition-all cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800 text-green-500">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-zinc-100">{session.split?.name || 'Sesión'}</h3>
-                    <p className="text-xs text-zinc-400">
-                      {format(new Date(session.date), 'dd MMM yyyy', { locale: es })}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-zinc-100">{Math.round(session.totalVolume || 0)} kg</p>
-                  <p className="text-[10px] text-zinc-500">Volumen</p>
-                </div>
+      <main className="px-5 space-y-6">
+        {/* Global Volume Chart */}
+        <section className="bg-[#141414] rounded-2xl p-5 shadow-sm">
+          <header className="flex justify-between items-start mb-1">
+            <div>
+              <h2 className="text-[10px] font-bold text-[#8A8A8A] uppercase tracking-widest">VOLUMEN GLOBAL</h2>
+              <div className="text-[32px] font-bold tabular-nums text-[#F0F0F0] leading-tight mt-1">
+                {totalVolume.toLocaleString()}<span className="text-sm font-normal ml-1">kg</span>
               </div>
-            ))}
+            </div>
+            <div className={`flex items-center text-xs font-semibold mt-2 ${volumeTrend >= 0 ? 'text-[#5FA870]' : 'text-red-400'}`}>
+              <TrendingUp className={`w-3 h-3 mr-1 ${volumeTrend < 0 ? 'rotate-180' : ''}`} />
+              {volumeTrend >= 0 ? '+' : ''}{volumeTrend.toFixed(1)}%
+            </div>
+          </header>
+          
+          <VolumeChart data={volumeData} />
+        </section>
+
+        {/* Frequency Heatmap */}
+        <FrequencyHeatmap sessions={volumeData} />
+
+        {/* Streak Info */}
+        <div className="flex items-center gap-2 px-1 text-sm font-medium text-[#F0F0F0]">
+          <Flame className="w-4 h-4 text-[#5FA870]" />
+          <span>Racha actual: {streak} días</span>
+        </div>
+
+        {/* Weight History Card */}
+        <section className="bg-[#141414] rounded-2xl p-5 shadow-sm">
+          <header className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-[10px] font-bold text-[#8A8A8A] uppercase tracking-widest">PESO CORPORAL</h2>
+              <div className="text-2xl font-bold tabular-nums text-[#F0F0F0] mt-1">
+                {weights.length > 0 ? weights[weights.length-1].weightKg.toFixed(1) : '--'}
+                <span className="text-xs font-normal ml-1">kg</span>
+              </div>
+            </div>
+            <CalendarDays className="w-5 h-5 text-[#8A8A8A]" />
+          </header>
+          <WeightChart data={weights} />
+        </section>
+
+        {/* History List */}
+        <section className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h2 className="text-[10px] font-bold text-[#8A8A8A] uppercase tracking-widest">HISTORIAL</h2>
+            <button className="text-[10px] text-[#5FA870] font-bold uppercase tracking-widest">VER TODO</button>
           </div>
-        ) : (
-          <p className="text-sm text-zinc-500">No hay sesiones registradas.</p>
-        )}
-      </section>
+
+          <div className="space-y-3">
+            {recentSessions.length > 0 ? (
+              recentSessions.map((session) => {
+                const splitType = session.split?.name.toLowerCase() || ''
+                let bgColor = 'bg-[#1A1A1A]'
+                let textColor = 'text-[#5FA870]'
+                
+                if (splitType.includes('push')) { bgColor = 'bg-[#4A7FA5]/10'; textColor = 'text-[#4A7FA5]' }
+                else if (splitType.includes('pull')) { bgColor = 'bg-[#3D6B47]/10'; textColor = 'text-[#3D6B47]' }
+                else if (splitType.includes('legs') || splitType.includes('pierna')) { bgColor = 'bg-[#8B6B4E]/10'; textColor = 'text-[#8B6B4E]' }
+
+                return (
+                  <div key={session.id} className="bg-[#141414] h-18 rounded-xl flex items-center px-4 justify-between active:scale-[0.98] transition-all cursor-pointer border border-[#262626]">
+                    <div className="flex items-center gap-3">
+                      <div className={`${bgColor} px-2 py-1 rounded-md min-w-[50px] text-center`}>
+                        <span className={`text-[9px] font-bold ${textColor} tracking-tighter uppercase`}>
+                          [{session.split?.name || 'TRAIN'}]
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-[#F0F0F0]">
+                          {format(new Date(session.date), 'eee d MMM', { locale: es })}
+                        </div>
+                        <div className="text-[10px] text-[#8A8A8A] tabular-nums">
+                          {Math.round(session.totalVolume || 0).toLocaleString()} kg
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        {session.progressPct !== null && (
+                        <div className={`text-[10px] font-bold tabular-nums ${session.progressPct >= 0 ? 'text-[#5FA870]' : 'text-red-400'}`}>
+                          {session.progressPct >= 0 ? '+' : ''}{session.progressPct.toFixed(1)}% {session.progressPct >= 0 ? '↑' : '↓'}
+                        </div>
+                        )}
+                        {session.sets.length > 0 && (
+                          <Trophy className="w-3.5 h-3.5 text-[#C8922A] ml-auto mt-0.5" />
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[#8A8A8A]" />
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="py-12 text-center bg-[#141414] rounded-2xl border border-dashed border-[#262626]">
+                <p className="text-[13px] text-[#8A8A8A]">Aún no has registrado sesiones.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
     </div>
   )
 }
