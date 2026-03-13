@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma/client'
 
 export async function login(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // type-casting here for convenience
   // in practice, you should validate your inputs
@@ -26,7 +26,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const data = {
     email: formData.get('email') as string,
@@ -35,7 +35,12 @@ export async function signup(formData: FormData) {
 
   const { data: authData, error } = await supabase.auth.signUp(data)
 
-  if (error || !authData.user) {
+  if (error) {
+    console.error('Supabase signup error:', error)
+    redirect(`/signup?error=${encodeURIComponent(error.message)}`)
+  }
+
+  if (!authData.user) {
     redirect('/signup?error=Could not create user')
   }
 

@@ -4,14 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 import { LogOut, Trash2, Camera } from 'lucide-react'
 
 export default async function ProfilePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   async function signOut() {
     'use server'
-    const supabaseServer = createClient()
+    const supabaseServer = await createClient()
     await supabaseServer.auth.signOut()
     redirect('/login')
   }

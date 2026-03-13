@@ -1,9 +1,19 @@
 import Link from 'next/link'
 import { signup } from '../actions'
 
-export default function SignupPage() {
+export default async function SignupPage(props: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const searchParams = await props.searchParams
+  const error = searchParams.error
+
   return (
     <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-6 shadow-xl">
+      {error && (
+        <div className="mb-4 rounded-md bg-red-500/10 p-3 text-sm text-red-500">
+          {error}
+        </div>
+      )}
       <form action={signup} className="flex flex-col gap-4">
         <div>
           <label htmlFor="email" className="mb-2 block text-sm font-medium text-zinc-300">

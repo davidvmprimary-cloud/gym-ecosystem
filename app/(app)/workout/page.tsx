@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { WorkoutSessionClient } from '@/components/workout/WorkoutSessionClient'
 
 export default async function WorkoutPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
