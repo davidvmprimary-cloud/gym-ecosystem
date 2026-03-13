@@ -1,18 +1,11 @@
 import prisma from '@/lib/prisma/client'
 
 export async function ensureUserExists(userId: string, email: string) {
-  const dbUser = await prisma.user.findUnique({
+  // Use upsert to handle race conditions where multiple calls might happen simultaneously
+  return await prisma.user.upsert({
     where: { id: userId },
-    include: { splits: true }
-  })
-
-  if (dbUser) return dbUser
-
-  console.log(`User ${userId} missing in Prisma. Recreating...`)
-
-  // Replicate signup logic for auto-healing
-  return await prisma.user.create({
-    data: {
+    update: {}, // No updates needed if exists
+    create: {
       id: userId,
       email: email,
       splits: {

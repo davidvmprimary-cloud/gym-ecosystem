@@ -7,6 +7,7 @@ import { MacrosDrawer } from '@/components/ui/MacrosDrawer'
 import { updateUserPreferences } from '@/app/actions/workout.actions'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { SplitEditorDrawer } from '@/components/profile/SplitEditorDrawer'
 
 export function ProfileClient({ user, isLimited = false }: { user: any, isLimited?: boolean }) {
   const router = useRouter()
@@ -14,6 +15,8 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
   const [isImprovementOpen, setIsImprovementOpen] = useState(false)
   const [isRestDaysOpen, setIsRestDaysOpen] = useState(false)
   const [isMacrosOpen, setIsMacrosOpen] = useState(false)
+  const [isSplitEditorOpen, setIsSplitEditorOpen] = useState(false)
+  const [selectedSplit, setSelectedSplit] = useState<any>(null)
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -31,6 +34,16 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
 
   const handleSaveMacros = async (cals: number, pro: number, carb: number, fat: number) => {
     await updateUserPreferences({ targetCalories: cals, targetProtein: pro, targetCarbs: carb, targetFat: fat })
+  }
+
+  const handleOpenNewSplit = () => {
+    setSelectedSplit(null)
+    setIsSplitEditorOpen(true)
+  }
+
+  const handleOpenEditSplit = (split: any) => {
+    setSelectedSplit(split)
+    setIsSplitEditorOpen(true)
   }
 
   return (
@@ -65,6 +78,13 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
         onSave={handleSaveMacros}
       />
 
+      <SplitEditorDrawer 
+        isOpen={isSplitEditorOpen}
+        onClose={() => setIsSplitEditorOpen(false)}
+        split={selectedSplit}
+        defaultOrder={(user.splits?.length || 0) + 1}
+      />
+
       {/* Training Program */}
       {!isLimited && (
         <section className="mb-8">
@@ -73,7 +93,10 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
               <h2 className="text-[11px] font-medium uppercase tracking-wide text-gym-secondary">Mi Programa</h2>
               <p className="text-[11px] text-gym-secondary mt-0.5">La secuencia de tu rutina</p>
             </div>
-            <button className="flex items-center gap-1 text-[12px] font-medium text-gym-green-accent">
+            <button 
+              onClick={handleOpenNewSplit}
+              className="flex items-center gap-1 text-[12px] font-medium text-gym-green-accent"
+            >
               <Plus className="w-3.5 h-3.5" />
               <span>Nuevo split</span>
             </button>
@@ -81,7 +104,11 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
           
           <div className="bg-gym-dark-1 rounded-[14px] overflow-hidden">
             {user.splits?.map((split: any) => (
-              <div key={split.id} className="flex items-center px-4 h-[48px] border-b border-gym-border active:bg-gym-dark-2">
+              <div 
+                key={split.id} 
+                onClick={() => handleOpenEditSplit(split)}
+                className="flex items-center px-4 h-[48px] border-b border-gym-border active:bg-gym-dark-2 cursor-pointer transition-colors"
+              >
                 <Dumbbell className="w-4 h-4 text-gym-secondary mr-3" />
                 <div className="flex-1 flex items-center">
                   <span className="text-[14px] text-gym-primary">{split.name}</span>
@@ -94,7 +121,10 @@ export function ProfileClient({ user, isLimited = false }: { user: any, isLimite
             ))}
 
             {/* Add Split placeholder */}
-            <div className="flex items-center px-4 h-[48px] active:bg-gym-dark-2 cursor-pointer">
+            <div 
+              onClick={handleOpenNewSplit}
+              className="flex items-center px-4 h-[48px] active:bg-gym-dark-2 cursor-pointer"
+            >
               <div className="w-4 h-4 flex items-center justify-center mr-3">
                 <div className="w-[2px] h-full bg-gym-muted rounded-full opacity-50 border-l border-dashed border-gym-secondary"></div>
               </div>
