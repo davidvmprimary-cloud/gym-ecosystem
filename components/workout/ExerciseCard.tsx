@@ -7,7 +7,7 @@ import { Check, Settings2, Circle } from 'lucide-react'
 import clsx from 'clsx'
 import { motion } from 'framer-motion'
 import { ExerciseSettingsDrawer } from './ExerciseSettingsDrawer'
-import { updateExerciseTarget } from '@/app/actions/workout.actions'
+import { updateExerciseSettings } from '@/app/actions/workout.actions'
 
 export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEven?: boolean }) {
   const { sets, draftSets, updateDraft, commitDraft } = useWorkoutSession()
@@ -32,25 +32,47 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
     commitDraft(exercise.id)
   }
 
-  const handleSaveTarget = async (newTarget: number) => {
-    await updateExerciseTarget(exercise.id, newTarget)
+  const handleSaveSettings = async (data: any) => {
+    await updateExerciseSettings(exercise.id, data)
   }
   
   return (
-    <article className={clsx("p-4 mb-px transition-colors relative", isEven ? "bg-gym-dark-2" : "bg-gym-dark-1")}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[16px] font-semibold text-gym-primary">{exercise.name}</h2>
-          <span className="bg-[#3D6B4720] text-gym-green-bright text-[11px] font-bold px-2 py-0.5 rounded-gym-pill">
-            +{progressPercent}%
-          </span>
+    <article 
+      className={clsx(
+        "p-4 mb-px transition-colors relative", 
+        isEven ? "bg-gym-dark-2" : "bg-gym-dark-1",
+        exercise.color ? "border-l-4" : ""
+      )}
+      style={exercise.color ? { borderLeftColor: exercise.color } : {}}
+    >
+      <div className="flex flex-col mb-4 gap-2">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[16px] font-semibold text-gym-primary" style={{ color: exercise.color || undefined }}>
+                {exercise.name}
+              </h2>
+              <span className="bg-[#3D6B4720] text-gym-green-bright text-[11px] font-bold px-2 py-0.5 rounded-gym-pill">
+                +{progressPercent}%
+              </span>
+            </div>
+            {exercise.metadata && typeof exercise.metadata === 'object' && Object.keys(exercise.metadata).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-0.5">
+                {Object.entries(exercise.metadata).map(([key, value]) => (
+                  <span key={key} className="text-[10px] bg-gym-dark-3 text-gym-secondary px-1.5 py-0.5 rounded flex items-center gap-1 border border-gym-border/50">
+                    <span className="font-semibold text-gym-muted">{key}:</span> {String(value)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="text-gym-secondary hover:text-white transition-colors self-start"
+          >
+            <Settings2 className="w-5 h-5" />
+          </button>
         </div>
-        <button 
-          onClick={() => setIsSettingsOpen(true)}
-          className="text-gym-secondary hover:text-white transition-colors"
-        >
-          <Settings2 className="w-5 h-5" />
-        </button>
       </div>
 
       <div className="space-y-2 mb-4">
@@ -118,7 +140,9 @@ export function ExerciseCard({ exercise, isEven = false }: { exercise: any; isEv
         onClose={() => setIsSettingsOpen(false)}
         exerciseName={exercise.name}
         currentImprovementTarget={improvementTarget}
-        onSave={handleSaveTarget}
+        currentColor={exercise.color}
+        currentMetadata={exercise.metadata}
+        onSave={handleSaveSettings}
       />
     </article>
   )

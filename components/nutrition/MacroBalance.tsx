@@ -1,6 +1,7 @@
 'use client'
 
 import { useNutritionStore } from '@/lib/stores/nutrition.store'
+import { useShallow } from 'zustand/react/shallow'
 
 interface MacroBalanceProps {
   goals: {
@@ -12,7 +13,7 @@ interface MacroBalanceProps {
 }
 
 export function MacroBalance({ goals }: MacroBalanceProps) {
-  const totals = useNutritionStore(s => s.getDailyTotals())
+  const totals = useNutritionStore(useShallow(s => s.getDailyTotals()))
 
   const macros = [
     { label: 'Proteína', current: totals.proteinG, goal: goals.protein, unit: 'g', color: '#3b82f6' },

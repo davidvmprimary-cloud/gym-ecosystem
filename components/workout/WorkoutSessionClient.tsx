@@ -8,15 +8,16 @@ import { ExerciseCard } from './ExerciseCard'
 import { finishWorkoutSession } from '@/app/actions/workout.actions'
 import { PRCelebration } from '@/components/shared/PRCelebration'
 import { RestTimerWidget } from '@/components/workout/RestTimerWidget'
-import { CloudUpload } from 'lucide-react'
+import { CloudUpload, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface WorkoutSessionClientProps {
   split: any // Prisma type
   daysSinceLastSession: number
   todayLabel: string
+  currentDateStr: string
 }
 
-export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }: WorkoutSessionClientProps) {
+export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel, currentDateStr }: WorkoutSessionClientProps) {
   const router = useRouter()
   const { isActive, splitId, startSession, finishSession, sets, draftSets } = useWorkoutSession()
   const [prTypes, setPrTypes] = useState<string[]>([])
@@ -24,10 +25,10 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
   const [isFinishing, setIsFinishing] = useState(false)
 
   useEffect(() => {
-    if (!isActive || splitId !== split.id) {
+    if (split && (!isActive || splitId !== split.id)) {
       startSession(split.id)
     }
-  }, [isActive, splitId, split.id, startSession])
+  }, [isActive, splitId, split, startSession])
 
   const handleFinish = async () => {
     if (isFinishing) return
@@ -89,15 +90,67 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel }
   const unsavedCount = draftList.length
   const totalSetsCount = sets.length + unsavedCount
 
+  const handlePrevDay = () => {
+    const d = new Date(currentDateStr + 'T12:00:00')
+    d.setDate(d.getDate() - 1)
+    router.push(`/workout?date=${d.toISOString().split('T')[0]}`)
+  }
+
+  const handleNextDay = () => {
+    const d = new Date(currentDateStr + 'T12:00:00')
+    d.setDate(d.getDate() + 1)
+    router.push(`/workout?date=${d.toISOString().split('T')[0]}`)
+  }
+
+  if (!split) {
+    return (
+      <div className="min-h-screen bg-gym-black text-gym-primary flex flex-col">
+        <header className="sticky top-0 z-50 bg-gym-black border-b border-gym-border px-4 flex items-center justify-center h-16">
+          <div className="flex items-center gap-4">
+            <button onClick={handlePrevDay} className="p-1 text-gym-secondary hover:text-white transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col items-center">
+              <span className="text-[11px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
+              <h1 className="text-[14px] font-bold text-gym-green-accent uppercase">Descanso</h1>
+            </div>
+            <button onClick={handleNextDay} className="p-1 text-gym-secondary hover:text-white transition-colors">
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4 mt-20">
+          <div className="w-20 h-20 rounded-full bg-gym-dark-1 border border-gym-border flex items-center justify-center shadow-lg">
+            <span className="text-3xl">🧘‍♂️</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-gym-primary">Día de Recuperación</h2>
+            <p className="text-gym-secondary text-sm max-w-[280px] mx-auto">
+              Hoy es un día de descanso asignado en tu distribución semanal. Carga energías para tu próxima sesión.
+            </p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <>
       <PRCelebration isVisible={showPR} prTypes={prTypes} onComplete={handlePrComplete} />
       <RestTimerWidget />
 
       <header className="sticky top-0 z-50 bg-gym-black border-b border-gym-border px-4 flex items-center justify-between h-16">
-        <div className="flex flex-col">
-          <span className="text-[11px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
-          <h1 className="text-[14px] font-bold text-gym-green-accent uppercase">{split.name}</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={handlePrevDay} className="p-1 text-gym-secondary hover:text-white transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex flex-col items-center">
+            <span className="text-[11px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
+            <h1 className="text-[14px] font-bold text-gym-green-accent uppercase">{split.name}</h1>
+          </div>
+          <button onClick={handleNextDay} className="p-1 text-gym-secondary hover:text-white transition-colors">
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
         <button 
           onClick={handleFinish} 

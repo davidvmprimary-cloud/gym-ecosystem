@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { MacroBalance } from '@/components/nutrition/MacroBalance'
 import { useNutritionStore } from '@/lib/stores/nutrition.store'
 import { getDailyNutrition, logNutritionEntry } from '@/app/actions/nutrition.actions'
+import { LogMealDrawer } from '@/components/nutrition/LogMealDrawer'
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 const MEAL_LABELS: Record<string, string> = {
@@ -17,6 +18,8 @@ const MEAL_LABELS: Record<string, string> = {
 export default function NutritionPage() {
   const { selectedDate, setDate, entries, setEntries } = useNutritionStore()
   const [targets, setTargets] = useState({ calories: 2500, protein: 160, carbs: 280, fat: 80 })
+  const [isLogMealOpen, setIsLogMealOpen] = useState(false)
+  const [selectedMealType, setSelectedMealType] = useState('breakfast')
   
   // Use state for local date object to format it easily
   const dateObj = new Date(selectedDate)
@@ -71,32 +74,13 @@ export default function NutritionPage() {
     setDate(newDate.toISOString().split('T')[0])
   }
 
-  const handleAdd = async (mealType: string) => {
-    // Quick mock add for demonstration
-    const entry = {
-      date: new Date(selectedDate).toISOString(),
-      mealType: mealType as any,
-      foodName: 'Pollo con arroz',
-      calories: 450,
-      proteinG: 40,
-      carbsG: 50,
-      fatG: 10
-    }
-    
-    // Optimistic UI update could go here
-    const saved = await logNutritionEntry(entry)
-    
-    // reload data or just append
-    const mapped = {
-      id: saved.id,
-      mealType: (saved.notes?.split(':')[0] as any) || mealType,
-      foodName: saved.notes?.split(':')[1]?.trim() || entry.foodName,
-      calories: saved.calories,
-      proteinG: saved.proteinG,
-      carbsG: saved.carbsG,
-      fatG: saved.fatG
-    }
-    useNutritionStore.getState().addEntry(mapped)
+  const handleAddClick = (mealType: string) => {
+    setSelectedMealType(mealType)
+    setIsLogMealOpen(true)
+  }
+
+  const handleSaveSuccess = (mappedEntry: any) => {
+    useNutritionStore.getState().addEntry(mappedEntry)
   }
 
   const dateLabel = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'short' }).format(dateObj)
@@ -123,10 +107,12 @@ export default function NutritionPage() {
           const mealEntries = entries.filter(e => e.mealType === meal)
           return (
             <div key={meal} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-zinc-200">{MEAL_LABELS[meal]}</h3>
-                <button onClick={() => handleAdd(meal)} className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400">
-                  <Plus className="h-4 w-4" /> Agregar
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-[14px] font-bold text-gym-primary">{MEAL_LABELS[meal]}</h3>
+                <button 
+                  onClick={() => handleAddClick(meal)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-gym-green-accent"
+                >  <Plus className="h-4 w-4" /> Agregar
                 </button>
               </div>
               
@@ -146,6 +132,14 @@ export default function NutritionPage() {
           )
         })}
       </div>
+      {/* Modals */}
+      <LogMealDrawer 
+        isOpen={isLogMealOpen}
+        onClose={() => setIsLogMealOpen(false)}
+        mealType={selectedMealType}
+        selectedDate={selectedDate}
+        onSaveSuccess={handleSaveSuccess}
+      />
     </div>
   )
 }

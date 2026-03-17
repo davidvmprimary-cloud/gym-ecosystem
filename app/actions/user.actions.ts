@@ -13,6 +13,7 @@ const IdentitySchema = z.object({
 const BodyStatsSchema = z.object({
   weightKg: z.number().positive().optional(),
   heightCm: z.number().positive().optional(),
+  birthDate: z.string().optional() // "YYYY-MM-DD"
 })
 
 export async function updateIdentity(data: z.infer<typeof IdentitySchema>) {
@@ -43,7 +44,8 @@ export async function logBodyStats(data: z.infer<typeof BodyStatsSchema>) {
       where: { id: user.id },
       data: {
         weight: parsed.weightKg,
-        height: parsed.heightCm
+        height: parsed.heightCm,
+        ...(parsed.birthDate && { birthDate: new Date(parsed.birthDate) })
       }
     })
 

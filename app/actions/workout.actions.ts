@@ -91,14 +91,18 @@ export async function finishWorkoutSession(input: z.infer<typeof FinishSessionSc
   return { sessionId: session.id, progressPct, newPRs: prResults }
 }
 
-export async function updateExerciseTarget(exerciseId: string, improvementTarget: number) {
+export async function updateExerciseSettings(exerciseId: string, data: { improvementTarget?: number, color?: string | null, metadata?: any }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   await prisma.exercise.update({
     where: { id: exerciseId },
-    data: { improvementTarget }
+    data: {
+      ...(data.improvementTarget !== undefined && { improvementTarget: data.improvementTarget }),
+      ...(data.color !== undefined && { color: data.color }),
+      ...(data.metadata !== undefined && { metadata: data.metadata }),
+    }
   })
 
   revalidatePath('/workout')
@@ -111,7 +115,8 @@ export async function getNextSplit(userId: string) {
     orderBy: { order: 'asc' }
   })
   if (!last || !last.split) return splits[0]
-  const currentIndex = splits.findIndex(s => s.id === last.split.id)
+  const lastSplitId = last.split.id
+  const currentIndex = splits.findIndex(s => s.id === lastSplitId)
   return splits[(currentIndex + 1) % splits.length]
 }
 
@@ -122,6 +127,7 @@ export async function updateUserPreferences(data: {
   targetProtein?: number
   targetCarbs?: number
   targetFat?: number
+  weeklySchedule?: any
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

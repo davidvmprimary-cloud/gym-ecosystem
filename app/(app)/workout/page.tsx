@@ -5,16 +5,19 @@ import prisma from '@/lib/prisma/client'
 import { redirect } from 'next/navigation'
 import { WorkoutSessionClient } from '@/components/workout/WorkoutSessionClient'
 
-export default async function WorkoutPage() {
+export default async function WorkoutPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const resolvedParams = await searchParams
+  const dateStr = typeof resolvedParams?.date === 'string' ? resolvedParams.date : undefined
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
 
   // Auto-heal / Ensure user exists
+  let dbUser = null
   try {
     const { ensureUserExists } = await import('@/lib/auth/ensure-user')
-    await ensureUserExists(user.id, user.email!)
+    dbUser = await ensureUserExists(user.id, user.email!)
   } catch (e) {
     console.error('Error auto-healing user in WorkoutPage:', e)
   }
@@ -67,12 +70,61 @@ export default async function WorkoutPage() {
     daysSinceLastSession = Math.floor(diffTime / (1000 * 60 * 60 * 24))
   }
 
-  const todaySplit = splits[nextSplitIndex]
-  const todayLabel = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+  let effectiveSplitIndex = nextSplitIndex
+  
+  let targetDate = new Date()
+  if (dateStr) {
+    targetDate = new Date(dateStr + 'T12:00:00')
+  }
+
+  const targetDateStart = new Date(targetDate)
+  targetDateStart.setHours(0,0,0,0)
+  const nextDay = new Date(targetDateStart)
+  nextDay.setDate(targetDateStart.getDate() + 1)
+
+  const sessionOnDate = await prisma.session.findFirst({
+    where: { 
+      userId: user.id,
+      date: { gte: targetDateStart, lt: nextDay }
+    },
+    orderBy: { date: 'desc' },
+    include: { split: true }
+  })
+
+  let todaySplit: any = null
+  const weeklySchedule = (dbUser as any)?.weeklySchedule as Record<string, string | null> | null
+  const dayOfWeek = targetDate.getDay().toString()
+
+  if (sessionOnDate) {
+    todaySplit = sessionOnDate.split
+  } else {
+    if (weeklySchedule && weeklySchedule[dayOfWeek] !== undefined) {
+      const scheduledSplitId = weeklySchedule[dayOfWeek]
+      if (scheduledSplitId === null) {
+        todaySplit = null // Rest Day
+      } else {
+        todaySplit = splits.find(s => s.id === scheduledSplitId) || null
+      }
+    } else {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const diffDays = Math.round((targetDateStart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      let effectiveSplitIndex = (nextSplitIndex + diffDays) % splits.length;
+      if (effectiveSplitIndex < 0) effectiveSplitIndex += splits.length;
+      todaySplit = splits[effectiveSplitIndex]
+    }
+  }
+  const todayLabel = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'short' }).format(targetDate)
+  const currentDateISO = targetDate.toISOString().split('T')[0]
 
   return (
     <div className="min-h-screen bg-gym-black text-gym-primary">
-      <WorkoutSessionClient split={todaySplit} daysSinceLastSession={daysSinceLastSession} todayLabel={todayLabel} />
+      <WorkoutSessionClient 
+        split={todaySplit} 
+        daysSinceLastSession={daysSinceLastSession} 
+        todayLabel={todayLabel} 
+        currentDateStr={currentDateISO}
+      />
     </div>
   )
 }

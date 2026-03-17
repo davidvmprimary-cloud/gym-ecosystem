@@ -37,18 +37,42 @@ export async function upsertSplit(data: z.infer<typeof SplitSchema>) {
         }
       })
 
-      // 2. Clear old exercises and recreate (Simpler for MVP than complex diffing)
-      await tx.exercise.deleteMany({
-        where: { splitId: parsed.id }
+      // 2. Intelligent Reconciliation of Exercises
+      const existingExercises = await tx.exercise.findMany({
+        where: { splitId: parsed.id },
+        select: { id: true }
       })
+      const existingIds = existingExercises.map(e => e.id)
+      const passedIds = parsed.exercises.filter(e => e.id).map(e => e.id!)
+      
+      const idsToDelete = existingIds.filter(id => !passedIds.includes(id))
 
-      await tx.exercise.createMany({
-        data: parsed.exercises.map(ex => ({
-          name: ex.name,
-          order: ex.order,
-          splitId: parsed.id!
-        }))
-      })
+      // Delete removed exercises
+      if (idsToDelete.length > 0) {
+        await tx.exercise.deleteMany({
+          where: { id: { in: idsToDelete } }
+        })
+      }
+
+      // Upsert exercises
+      for (const ex of parsed.exercises) {
+        if (ex.id && existingIds.includes(ex.id)) {
+          // Update existing
+          await tx.exercise.update({
+            where: { id: ex.id },
+            data: { name: ex.name, order: ex.order }
+          })
+        } else {
+          // Create new
+          await tx.exercise.create({
+            data: {
+              name: ex.name,
+              order: ex.order,
+              splitId: parsed.id!
+            }
+          })
+        }
+      }
     })
   } else {
     // Create new split

@@ -1,15 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Dumbbell, ChevronRight, TrendingUp, Apple, Moon, Settings2, LogOut, Camera } from 'lucide-react'
+import { Plus, Dumbbell, ChevronRight, TrendingUp, Apple, Moon, Settings2, LogOut, Camera, Calendar } from 'lucide-react'
 import { SliderDrawer } from '@/components/ui/SliderDrawer'
 import { MacrosDrawer } from '@/components/ui/MacrosDrawer'
 import { updateUserPreferences } from '@/app/actions/workout.actions'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { SplitEditorDrawer } from '@/components/profile/SplitEditorDrawer'
 import { IdentityDrawer } from '@/components/profile/IdentityDrawer'
 import { BodyStatsDrawer } from '@/components/profile/BodyStatsDrawer'
+import { WeeklyScheduleDrawer } from '@/components/profile/WeeklyScheduleDrawer'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+function calculateAge(birthDateInput?: string | Date): string {
+  if (!birthDateInput) return '--'
+  const today = new Date()
+  const birthDate = new Date(birthDateInput)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age.toString()
+}
 
 export function ProfileClient({ user, memberSince, isLimited = false }: { user: any, memberSince?: string, isLimited?: boolean }) {
   const router = useRouter()
@@ -21,6 +34,7 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
   const [selectedSplit, setSelectedSplit] = useState<any>(null)
   const [isIdentityOpen, setIsIdentityOpen] = useState(false)
   const [isBodyStatsOpen, setIsBodyStatsOpen] = useState(false)
+  const [isWeeklyScheduleOpen, setIsWeeklyScheduleOpen] = useState(false)
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -43,6 +57,10 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
   const handleOpenNewSplit = () => {
     setSelectedSplit(null)
     setIsSplitEditorOpen(true)
+  }
+
+  const handleSaveWeeklySchedule = async (schedule: Record<string, string | null>) => {
+    await updateUserPreferences({ weeklySchedule: schedule })
   }
 
   const handleOpenEditSplit = (split: any) => {
@@ -126,6 +144,15 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
         onClose={() => setIsBodyStatsOpen(false)}
         currentWeight={user.weight || 0}
         currentHeight={user.height || 0}
+        currentBirthDate={user.birthDate}
+      />
+
+      <WeeklyScheduleDrawer
+        isOpen={isWeeklyScheduleOpen}
+        onClose={() => setIsWeeklyScheduleOpen(false)}
+        splits={user.splits || []}
+        currentSchedule={user.weeklySchedule || {}}
+        onSave={handleSaveWeeklySchedule}
       />
 
       {/* Training Program */}
@@ -147,7 +174,7 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
             <div className="w-[1px] h-[32px] bg-gym-border self-center"></div>
             <div className="flex-1 flex flex-col items-center justify-center">
               <span className="text-[20px] font-bold tabular-nums text-gym-primary">
-                {user.birthDate ? new Date().getFullYear() - new Date(user.birthDate).getFullYear() : '--'} a
+                {calculateAge(user.birthDate)} a
               </span>
               <span className="text-[11px] text-gym-secondary">Edad</span>
             </div>
@@ -193,13 +220,22 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
             {/* Add Split placeholder */}
             <div 
               onClick={handleOpenNewSplit}
-              className="flex items-center px-4 h-[48px] active:bg-gym-dark-2 cursor-pointer"
+              className="flex items-center px-4 h-[48px] active:bg-gym-dark-2 cursor-pointer border-b border-gym-border"
             >
               <div className="w-4 h-4 flex items-center justify-center mr-3">
                 <div className="w-[2px] h-full bg-gym-muted rounded-full opacity-50 border-l border-dashed border-gym-secondary"></div>
               </div>
               <span className="text-[14px] text-gym-secondary flex-1">+ Agregar split</span>
             </div>
+
+            <button onClick={() => setIsWeeklyScheduleOpen(true)} className="w-full flex items-center px-4 h-[56px] active:bg-gym-dark-2 text-left bg-gym-dark-2/20">
+              <Calendar className="w-5 h-5 text-gym-green-accent mr-3" />
+              <div className="flex-1">
+                <p className="text-[14px] text-gym-primary font-medium">Distribución Semanal</p>
+                <p className="text-[11px] text-gym-secondary w-full truncate">Asigna rutinas a días específicos</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gym-muted" />
+            </button>
           </div>
         </section>
       )}

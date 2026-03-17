@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Scale, Ruler } from 'lucide-react'
+import { X, Check, Scale, Ruler, CalendarDays } from 'lucide-react'
 import { logBodyStats } from '@/app/actions/user.actions'
 
 interface BodyStatsDrawerProps {
@@ -10,22 +10,29 @@ interface BodyStatsDrawerProps {
   onClose: () => void
   currentWeight: number
   currentHeight: number
+  currentBirthDate: string | null
 }
 
-export function BodyStatsDrawer({ isOpen, onClose, currentWeight, currentHeight }: BodyStatsDrawerProps) {
+export function BodyStatsDrawer({ isOpen, onClose, currentWeight, currentHeight, currentBirthDate }: BodyStatsDrawerProps) {
   const [weight, setWeight] = useState(currentWeight || 0)
   const [height, setHeight] = useState(currentHeight || 0)
+  const [birthDate, setBirthDate] = useState(currentBirthDate || '')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     setWeight(currentWeight || 0)
     setHeight(currentHeight || 0)
-  }, [isOpen, currentWeight, currentHeight])
+    setBirthDate(currentBirthDate ? new Date(currentBirthDate).toISOString().split('T')[0] : '')
+  }, [isOpen, currentWeight, currentHeight, currentBirthDate])
 
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      await logBodyStats({ weightKg: Number(weight), heightCm: Number(height) })
+      await logBodyStats({ 
+        weightKg: Number(weight), 
+        heightCm: Number(height),
+        birthDate: birthDate ? birthDate : undefined
+      })
       onClose()
     } catch (e) {
       console.error(e)
@@ -112,6 +119,22 @@ export function BodyStatsDrawer({ isOpen, onClose, currentWeight, currentHeight 
                   <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none">
                     <span className="text-[14px] font-medium text-gym-muted">cm</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Birth Date Input */}
+              <div className="space-y-3 pb-8">
+                <div className="flex items-center gap-2 px-1">
+                  <CalendarDays className="w-4 h-4 text-gym-secondary" />
+                  <label className="text-[11px] font-medium uppercase tracking-wide text-gym-secondary">Fecha de Nacimiento</label>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="date" 
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    className="w-full h-16 bg-gym-dark-2 border border-gym-border rounded-gym px-6 text-[18px] font-bold text-gym-primary focus:border-gym-green-accent outline-none text-center shadow-inner"
+                  />
                 </div>
               </div>
             </div>
