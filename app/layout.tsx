@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "GymTracker PWA",
   description: "Progreso de entrenamiento offline-first",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
