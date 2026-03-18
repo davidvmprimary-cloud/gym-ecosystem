@@ -113,10 +113,12 @@ export function LogMealDrawer({ isOpen, onClose, mealType, selectedDate, onSaveS
         id: savedId,
         mealType: mealType,
         foodName: foodName,
+        grams: Number(grams || 0),
         calories: Number(calories),
         proteinG: Number(protein || 0),
         carbsG: Number(carbs || 0),
-        fatG: Number(fat || 0)
+        fatG: Number(fat || 0),
+        catalogId: selectedCatalogId || undefined
       }
       
       onSaveSuccess(mapped)

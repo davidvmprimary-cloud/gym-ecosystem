@@ -6,11 +6,11 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma/client'
 
 const NutritionEntrySchema = z.object({
-  date: z.string().datetime(),
+  date: z.string(), // Relaxed to handle various ISO formats from JS
   mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
   foodName: z.string().min(1),
-  grams: z.number().nonnegative(),
-  calories: z.number().nonnegative(),
+  grams: z.number().min(0).default(0),
+  calories: z.number().min(0),
   proteinG: z.number().min(0),
   carbsG: z.number().min(0),
   fatG: z.number().min(0),

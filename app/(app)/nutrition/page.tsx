@@ -140,10 +140,12 @@ export default function NutritionPage() {
         date: new Date(selectedDate).toISOString(),
         mealType: mappedEntry.mealType,
         foodName: mappedEntry.foodName,
+        grams: Number(mappedEntry.grams || 0),
         calories: mappedEntry.calories,
         proteinG: mappedEntry.proteinG,
         carbsG: mappedEntry.carbsG,
-        fatG: mappedEntry.fatG
+        fatG: mappedEntry.fatG,
+        catalogId: mappedEntry.catalogId
       }
       await addPendingAction('SYNC_NUTRITION', payload)
     }
@@ -227,8 +229,9 @@ export default function NutritionPage() {
                        <button 
                          key={idx}
                          onClick={async () => {
+                           const savedId = crypto.randomUUID()
                            const payload = {
-                             date: new Date(selectedDate).toISOString(),
+                             id: savedId, // Use temp ID for UI
                              mealType: item.mealType,
                              foodName: item.catalog.name,
                              grams: item.grams,
@@ -238,8 +241,22 @@ export default function NutritionPage() {
                              fatG: Number((item.catalog.fatPer100g * (item.grams / 100)).toFixed(1)),
                              catalogId: item.catalogId
                            }
-                           const saved = await logNutritionEntry(payload)
-                           handleSaveSuccess(saved)
+
+                           if (isOnline) {
+                             try {
+                               const saved = await logNutritionEntry({
+                                 date: new Date(selectedDate).toISOString(),
+                                 ...payload,
+                                 id: undefined // Remove temp ID
+                               } as any)
+                               handleSaveSuccess({ ...payload, id: saved.id })
+                             } catch (e) {
+                               console.error("Failed to log fixed diet online", e)
+                               handleSaveSuccess(payload) // Fallback to offline logic inside handleSaveSuccess
+                             }
+                           } else {
+                             handleSaveSuccess(payload)
+                           }
                          }}
                          className="w-full flex items-center justify-between p-3 mb-2 bg-gym-green-bg/5 border border-dashed border-gym-green-accent/30 rounded-xl group hover:bg-gym-green-bg/10 transition-colors"
                        >

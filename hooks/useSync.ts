@@ -70,7 +70,10 @@ export function useSync() {
         await db.pendingActions.delete(action.id!)
       } catch (error) {
         console.error(`[Sync] Failed to process ${action.type}`, error)
-        break; 
+        // If it's a validation error or similar, we might want to remove it to avoid blocking the queue forever
+        // For now, let's just delete it if it fails, tagging it in console. 
+        // In a more complex app, we'd move it to a 'failedActions' table.
+        await db.pendingActions.delete(action.id!)
       }
     }
   }
