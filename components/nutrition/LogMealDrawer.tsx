@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Utensils, Flame } from 'lucide-react'
+import { X, Check, Utensils, Flame, Search, ChevronRight } from 'lucide-react'
 import { logNutritionEntry } from '@/app/actions/nutrition.actions'
+import { getFoodCatalog } from '@/app/actions/catalog.actions'
 
 interface LogMealDrawerProps {
   isOpen: boolean
@@ -26,7 +27,59 @@ export function LogMealDrawer({ isOpen, onClose, mealType, selectedDate, onSaveS
   const [protein, setProtein] = useState<number | ''>('')
   const [carbs, setCarbs] = useState<number | ''>('')
   const [fat, setFat] = useState<number | ''>('')
+
+  const [baseCals, setBaseCals] = useState<number>(0)
+  const [baseProtein, setBaseProtein] = useState<number>(0)
+  const [baseCarbs, setBaseCarbs] = useState<number>(0)
+  const [baseFat, setBaseFat] = useState<number>(0)
+  const [baseGrams, setBaseGrams] = useState<number>(100)
+  const [selectedCatalogId, setSelectedCatalogId] = useState<string | null>(null)
+  const [tab, setTab] = useState<'manual' | 'catalog'>('manual')
+  const [catalogItems, setCatalogItems] = useState<any[]>([])
+  const [search, setSearch] = useState('')
+  const [grams, setGrams] = useState<number>(100)
+  
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      loadCatalog()
+    }
+  }, [isOpen])
+
+  const loadCatalog = async () => {
+    try {
+      const data = await getFoodCatalog()
+      setCatalogItems(data)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleSelectFromCatalog = (item: any) => {
+    setTab('manual')
+    setFoodName(item.name)
+    setSelectedCatalogId(item.id)
+    setBaseCals(item.caloriesPer100g)
+    setBaseProtein(item.proteinPer100g)
+    setBaseCarbs(item.carbsPer100g)
+    setBaseFat(item.fatPer100g)
+    setBaseGrams(item.baseGrams || 100)
+    
+    // Set initial values based on default grams
+    updateMacrosWithGrams(item.baseGrams || 100, item)
+  }
+
+
+
+  const updateMacrosWithGrams = (g: number, baseData?: any) => {
+    const factor = g / (baseData?.baseGrams || baseGrams || 100)
+    setCalories(Math.round((baseData?.caloriesPer100g || baseCals) * factor))
+    setProtein(Number(((baseData?.proteinPer100g || baseProtein) * factor).toFixed(1)))
+    setCarbs(Number(((baseData?.carbsPer100g || baseCarbs) * factor).toFixed(1)))
+    setFat(Number(((baseData?.fatPer100g || baseFat) * factor).toFixed(1)))
+    setGrams(g)
+  }
 
   const handleSave = async () => {
     if (!foodName || !calories) return
@@ -37,10 +90,12 @@ export function LogMealDrawer({ isOpen, onClose, mealType, selectedDate, onSaveS
         date: new Date(selectedDate).toISOString(),
         mealType: mealType as any,
         foodName,
+        grams: Number(grams || 0),
         calories: Number(calories),
         proteinG: Number(protein || 0),
         carbsG: Number(carbs || 0),
-        fatG: Number(fat || 0)
+        fatG: Number(fat || 0),
+        catalogId: selectedCatalogId || undefined
       }
       
       let savedId = crypto.randomUUID()
@@ -125,36 +180,109 @@ export function LogMealDrawer({ isOpen, onClose, mealType, selectedDate, onSaveS
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pb-10">
-              {/* Food Name */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-medium uppercase tracking-wide text-gym-secondary px-1">Alimento</label>
-                <input 
-                  type="text" 
-                  value={foodName}
-                  onChange={(e) => setFoodName(e.target.value)}
-                  placeholder="Ej: Avena con proteína..."
-                  className="w-full h-14 bg-gym-dark-2 border border-gym-border rounded-gym px-4 text-[15px] text-gym-primary focus:border-gym-green-accent outline-none"
-                />
-              </div>
+            {/* Tabs */}
+            <div className="flex bg-gym-dark-2 rounded-xl p-1 mb-6">
+              <button 
+                onClick={() => setTab('manual')}
+                className={`flex-1 h-9 rounded-lg text-[13px] font-medium transition-all ${tab === 'manual' ? 'bg-gym-dark-3 text-white shadow-sm' : 'text-gym-secondary'}`}
+              >
+                Manual
+              </button>
+              <button 
+                onClick={() => setTab('catalog')}
+                className={`flex-1 h-9 rounded-lg text-[13px] font-medium transition-all ${tab === 'catalog' ? 'bg-gym-dark-3 text-white shadow-sm' : 'text-gym-secondary'}`}
+              >
+                Catálogo
+              </button>
+            </div>
 
-              {/* Total Calories */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1 text-orange-400">
-                  <Flame className="w-4 h-4" />
-                  <label className="text-[11px] font-medium uppercase tracking-wide">Calorías Totales *</label>
+            <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pb-10">
+              {tab === 'catalog' ? (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gym-secondary" />
+                    <input 
+                      type="text"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Buscar en catálogo..."
+                      className="w-full h-12 bg-gym-dark-2 border border-gym-border rounded-xl pl-12 pr-4 text-sm text-gym-primary outline-none focus:border-gym-green-accent"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    {catalogItems
+                      .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+                      .map(item => (
+                        <button 
+                          key={item.id}
+                          onClick={() => handleSelectFromCatalog(item)}
+                          className="w-full bg-gym-dark-2 border border-gym-border rounded-xl p-4 flex items-center justify-between text-left group"
+                        >
+                          <div>
+                            <h4 className="text-[14px] font-bold text-gym-primary group-hover:text-gym-green-accent transition-colors">{item.name}</h4>
+                            <p className="text-[11px] text-gym-secondary">
+                              {item.caloriesPer100g} kcal · P: {item.proteinPer100g}g · {item.baseGrams}g
+                            </p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gym-muted" />
+                        </button>
+                      ))}
+                  </div>
                 </div>
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    value={calories}
-                    onChange={(e) => setCalories(Number(e.target.value))}
-                    placeholder="350"
-                    className="w-full h-14 bg-gym-dark-2 border border-gym-border rounded-gym px-4 pr-12 text-[18px] font-bold text-gym-primary focus:border-orange-500 outline-none tabular-nums"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-medium text-gym-muted">kcal</div>
-                </div>
-              </div>
+              ) : (
+                <>
+                  {/* Food Name */}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-medium uppercase tracking-wide text-gym-secondary px-1">Alimento</label>
+                    <input 
+                      type="text" 
+                      value={foodName}
+                      onChange={(e) => {
+                        setFoodName(e.target.value)
+                        setSelectedCatalogId(null) // Break link if manually editing name
+                      }}
+                      placeholder="Ej: Avena con proteína..."
+                      className="w-full h-14 bg-gym-dark-2 border border-gym-border rounded-gym px-4 text-[15px] text-gym-primary focus:border-gym-green-accent outline-none"
+                    />
+                  </div>
+
+                  {selectedCatalogId && (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-medium uppercase tracking-wide text-gym-green-accent px-1">Gramos a registrar</label>
+                      <div className="relative">
+                        <input 
+                          type="number" 
+                          value={grams}
+                          onChange={(e) => updateMacrosWithGrams(Number(e.target.value))}
+                          className="w-full h-14 bg-gym-dark-3 border border-gym-green-accent/30 rounded-gym px-4 text-[18px] font-bold text-gym-primary outline-none"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-medium text-gym-muted">gramos</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total Calories */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-1 text-orange-400">
+                      <Flame className="w-4 h-4" />
+                      <label className="text-[11px] font-medium uppercase tracking-wide">Calorías Totales *</label>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        value={calories}
+                        onChange={(e) => {
+                          setCalories(Number(e.target.value))
+                          if (!selectedCatalogId) setBaseCals(Number(e.target.value))
+                        }}
+                        placeholder="350"
+                        className="w-full h-14 bg-gym-dark-2 border border-gym-border rounded-gym px-4 pr-12 text-[18px] font-bold text-gym-primary focus:border-orange-500 outline-none tabular-nums"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-medium text-gym-muted">kcal</div>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="h-[1px] w-full bg-gym-border my-2"></div>
 

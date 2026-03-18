@@ -2,7 +2,7 @@ import Dexie, { type Table } from 'dexie';
 
 export interface PendingAction {
   id?: number;
-  type: 'SYNC_NUTRITION' | 'SYNC_WORKOUT' | 'SYNC_BODY_STATS' | 'SYNC_SPLIT';
+  type: 'SYNC_NUTRITION' | 'DELETE_NUTRITION' | 'SYNC_WORKOUT' | 'SYNC_BODY_STATS' | 'SYNC_SPLIT' | 'SYNC_CATALOG' | 'SYNC_DIET';
   payload: any;
   timestamp: number;
 }

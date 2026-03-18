@@ -9,6 +9,8 @@ export interface NutritionEntry {
   proteinG: number
   carbsG: number
   fatG: number
+  grams?: number
+  catalogId?: string
 }
 
 interface NutritionStore {

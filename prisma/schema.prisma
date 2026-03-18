@@ -21,11 +21,14 @@ model User {
   targetCarbs              Float     @default(250)
   targetFat                Float     @default(70)
   weeklySchedule           Json?
+  isFixedDietActive       Boolean   @default(false)
   createdAt                DateTime  @default(now())
 
   splits          Split[]
   sessions        Session[]
   nutritionLogs   NutritionLog[]
+  foodCatalog     FoodCatalog[]
+  dietTemplates   DietTemplate[]
   personalRecords PersonalRecord[]
   bodyWeights     BodyWeightLog[]
 }
@@ -82,15 +85,54 @@ model Set {
 }
 
 model NutritionLog {
-  id       String   @id @default(uuid()) @db.Uuid
-  userId   String   @db.Uuid
-  date     DateTime @default(now())
-  calories Int
-  proteinG Float
-  carbsG   Float
-  fatG     Float
-  notes    String?
-  user     User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  date      DateTime @default(now())
+  mealType  String   @default("snack") // breakfast, lunch, dinner, snack
+  foodName  String
+  grams     Float    @default(0)
+  calories  Int
+  proteinG  Float
+  carbsG    Float
+  fatG      Float
+  catalogId String?  @db.Uuid // Referencia opcional al catálogo
+  notes     String?
+  user      User     @relation(fields: [userId], references: [id])
+
+  catalog   FoodCatalog? @relation(fields: [catalogId], references: [id])
+}
+
+model FoodCatalog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  caloriesPer100g Int
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+  baseGrams       Float @default(100)
+  user      User     @relation(fields: [userId], references: [id])
+  logs      NutritionLog[]
+  templateItems DietTemplateItem[]
+}
+
+model DietTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  isActive  Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id])
+  items     DietTemplateItem[]
+}
+
+model DietTemplateItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  templateId String   @db.Uuid
+  catalogId  String   @db.Uuid
+  mealType   String   // breakfast, lunch, etc
+  grams      Float
+  template   DietTemplate @relation(fields: [templateId], references: [id])
+  food       FoodCatalog  @relation(fields: [catalogId], references: [id])
 }
 
 model PersonalRecord {

@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/db/local-db'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { logNutritionEntry } from '@/app/actions/nutrition.actions'
+import { logNutritionEntry, deleteNutritionEntry } from '@/app/actions/nutrition.actions'
 import { finishWorkoutSession } from '@/app/actions/workout.actions'
 import { logBodyStats } from '@/app/actions/user.actions'
 import { upsertSplit } from '@/app/actions/split.actions'
+import { upsertCatalogItem } from '@/app/actions/catalog.actions'
+import { upsertDietTemplate } from '@/app/actions/diet.actions'
 
 export function useSync() {
   const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? navigator.onLine : true)
@@ -33,15 +35,20 @@ export function useSync() {
   }, [isOnline, pendingActions])
 
   async function syncData() {
-    if (!pendingActions || pendingActions.length === 0) return
+    // Fetch fresh actions to avoid closure issues
+    const currentActions = await db.pendingActions.toArray()
+    if (!currentActions || currentActions.length === 0) return
 
-    for (const action of pendingActions) {
+    for (const action of currentActions) {
       try {
         console.log(`[Sync] Processing ${action.type}`, action.payload)
         
         switch (action.type) {
           case 'SYNC_NUTRITION':
             await logNutritionEntry(action.payload)
+            break
+          case 'DELETE_NUTRITION':
+            await deleteNutritionEntry(action.payload.id)
             break
           case 'SYNC_WORKOUT':
             await finishWorkoutSession(action.payload)
@@ -52,15 +59,18 @@ export function useSync() {
           case 'SYNC_SPLIT':
             await upsertSplit(action.payload)
             break
-          // Add other cases as needed
+          case 'SYNC_CATALOG':
+            await upsertCatalogItem(action.payload)
+            break
+          case 'SYNC_DIET':
+            await upsertDietTemplate(action.payload)
+            break
         }
         
         await db.pendingActions.delete(action.id!)
       } catch (error) {
         console.error(`[Sync] Failed to process ${action.type}`, error)
-        // If it's a validation error or something permanent, we might want to delete it anyway
-        // or keep retrying if it's a network error (isOnline should handle this)
-        break; // Stop processing the queue if one fails
+        break; 
       }
     }
   }
@@ -71,10 +81,7 @@ export function useSync() {
       payload,
       timestamp: Date.now()
     })
-    
-    if (isOnline) {
-      syncData()
-    }
+    // useEffect will pick this up when isOnline is true
   }
 
   return { isOnline, pendingCount: pendingActions?.length || 0, addPendingAction }

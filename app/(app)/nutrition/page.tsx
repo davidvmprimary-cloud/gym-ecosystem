@@ -1,13 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
 import { MacroBalance } from '@/components/nutrition/MacroBalance'
 import { useNutritionStore } from '@/lib/stores/nutrition.store'
-import { getDailyNutrition, logNutritionEntry } from '@/app/actions/nutrition.actions'
+import { getDailyNutrition, logNutritionEntry, deleteNutritionEntry } from '@/app/actions/nutrition.actions'
+import { getActiveDietTemplate } from '@/app/actions/diet.actions'
+import { getNutritionProgression } from '@/app/actions/progression.actions'
 import { LogMealDrawer } from '@/components/nutrition/LogMealDrawer'
 import { useSync } from '@/hooks/useSync'
 import { db } from '@/lib/db/local-db'
+import { motion } from 'framer-motion'
+import { Trash2, AlertCircle, Zap } from 'lucide-react'
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 const MEAL_LABELS: Record<string, string> = {
@@ -22,8 +26,11 @@ export default function NutritionPage() {
   const [targets, setTargets] = useState({ calories: 2500, protein: 160, carbs: 280, fat: 80 })
   const [isLogMealOpen, setIsLogMealOpen] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState('breakfast')
+  const [progression, setProgression] = useState<any>(null)
+  const [dietTemplate, setDietTemplate] = useState<any>(null)
   const { isOnline, addPendingAction } = useSync()
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(false)
   
   useEffect(() => { setMounted(true) }, [])
   
@@ -32,7 +39,8 @@ export default function NutritionPage() {
 
   useEffect(() => {
     async function loadData() {
-      // 1. Try to load from Local Cache first (Fast UI)
+      setLoading(true)
+      // 1. Try to load from Local Cache
       const cached = await db.cachedNutrition.get(selectedDate)
       if (cached) {
         setEntries(cached.entries)
@@ -40,17 +48,27 @@ export default function NutritionPage() {
 
       if (isOnline) {
         try {
-          const data = await getDailyNutrition(selectedDate)
-          const mapped = data.map(d => ({
+          const [data, progData, dietTemplate] = await Promise.all([
+            getDailyNutrition(selectedDate),
+            getNutritionProgression(selectedDate),
+            getActiveDietTemplate()
+          ])
+
+          let mapped = data.map((d: any) => ({
             id: d.id,
-            mealType: (d.notes?.split(':')[0] as any) || 'snack',
-            foodName: d.notes?.split(':')[1]?.trim() || 'Comida',
+            mealType: d.mealType as any,
+            foodName: d.foodName,
             calories: d.calories,
             proteinG: d.proteinG,
             carbsG: d.carbsG,
-            fatG: d.fatG
+            fatG: d.fatG,
+            catalogId: d.catalogId
           }))
+
           setEntries(mapped)
+          setProgression(progData)
+          setDietTemplate(dietTemplate)
+
           // Update Cache
           await db.cachedNutrition.put({
             date: selectedDate,
@@ -59,7 +77,11 @@ export default function NutritionPage() {
           })
         } catch (e) {
           console.error(e)
+        } finally {
+          setLoading(false)
         }
+      } else {
+        setLoading(false)
       }
     }
     async function loadUserTargets() {
@@ -127,24 +149,56 @@ export default function NutritionPage() {
     }
   }
 
-  if (!mounted) return null // Prevent hydration mismatch
+  const handleDeleteEntry = async (id: string) => {
+    // Optimistic UI
+    const updated = entries.filter(e => e.id !== id)
+    setEntries(updated)
+    await db.cachedNutrition.put({
+      date: selectedDate,
+      entries: updated,
+      updatedAt: Date.now()
+    })
+
+    if (isOnline) {
+      await deleteNutritionEntry(id)
+    } else {
+      await addPendingAction('DELETE_NUTRITION', { id })
+    }
+  }
+
+  if (!mounted) return null
 
   const dateLabel = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'short' }).format(dateObj)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Nutrición</h1>
-        <div className="flex items-center gap-2 rounded-lg bg-zinc-900 px-2 py-1">
-          <button onClick={handlePrevDay} className="p-1 text-zinc-400 hover:text-zinc-100">
+        <h1 className="text-2xl font-bold text-gym-primary">Nutrición</h1>
+        <div className="flex items-center gap-2 rounded-xl bg-gym-dark-2 border border-gym-border px-3 py-1.5 shadow-sm">
+          <button onClick={handlePrevDay} className="p-1 text-gym-secondary hover:text-gym-primary transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="w-28 text-center text-sm font-medium capitalize text-zinc-100">{dateLabel}</span>
+          <span className="w-28 text-center text-[13px] font-bold capitalize text-gym-primary">{dateLabel}</span>
           <button onClick={handleNextDay} className="p-1 text-zinc-400 hover:text-zinc-100">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </div>
+
+      {/* Progression Delta */}
+      {progression && (
+        <div className="grid grid-cols-4 gap-2">
+          {Object.entries(progression.deltas).map(([key, delta]: [string, any]) => (
+            <div key={key} className="bg-gym-dark-2 border border-gym-border rounded-xl p-2.5 text-center">
+              <p className="text-[9px] uppercase tracking-wider text-gym-secondary font-bold">{key === 'calories' ? 'Kcal' : key}</p>
+              <div className={`text-[12px] font-bold mt-0.5 flex items-center justify-center gap-0.5 ${delta.absolute > 0 ? 'text-red-400' : delta.absolute < 0 ? 'text-gym-green-accent' : 'text-gym-muted'}`}>
+                {delta.absolute > 0 ? '+' : ''}{delta.absolute}
+                <span className="text-[10px] opacity-70">({delta.percent}%)</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <MacroBalance goals={targets} />
 
@@ -152,28 +206,81 @@ export default function NutritionPage() {
         {MEALS.map(meal => {
           const mealEntries = entries.filter(e => e.mealType === meal)
           return (
-            <div key={meal} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-[14px] font-bold text-gym-primary">{MEAL_LABELS[meal]}</h3>
+            <div key={meal} className="rounded-2xl border border-gym-border bg-gym-dark-1/50 overflow-hidden shadow-sm">
+              <div className="flex justify-between items-center p-4 bg-gym-dark-2/30">
+                <h3 className="text-[14px] font-bold text-gym-primary flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gym-green-accent" />
+                  {MEAL_LABELS[meal]}
+                </h3>
                 <button 
                   onClick={() => handleAddClick(meal)}
-                  className="flex items-center gap-1 text-[11px] font-medium text-gym-green-accent"
-                >  <Plus className="h-4 w-4" /> Agregar
+                  className="px-3 py-1.5 bg-gym-green-bg/10 text-gym-green-accent text-[11px] font-bold rounded-lg flex items-center gap-1.5 hover:bg-gym-green-bg/20 transition-colors"
+                >  <Plus className="h-3.5 w-3.5" /> Agregar
                 </button>
               </div>
               
-              {mealEntries.length === 0 ? (
-                <p className="mt-2 text-sm text-zinc-500">Sin registros</p>
-              ) : (
-                <div className="space-y-2 mt-3">
-                  {mealEntries.map(e => (
-                    <div key={e.id} className="flex justify-between items-center text-sm">
-                      <span className="text-zinc-300">{e.foodName}</span>
-                      <span className="text-zinc-400 font-medium tabular-nums">{e.calories} kcal</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="p-4 pt-0">
+                {/* Diet Template Section If Empty for this meal */}
+                {dietTemplate && !mealEntries.some(e => e.catalogId) && (
+                   <div className="mb-4">
+                     {dietTemplate.items.filter((i: any) => i.mealType === meal).map((item: any, idx: number) => (
+                       <button 
+                         key={idx}
+                         onClick={async () => {
+                           const payload = {
+                             date: new Date(selectedDate).toISOString(),
+                             mealType: item.mealType,
+                             foodName: item.catalog.name,
+                             grams: item.grams,
+                             calories: Math.round(item.catalog.caloriesPer100g * (item.grams / 100)),
+                             proteinG: Number((item.catalog.proteinPer100g * (item.grams / 100)).toFixed(1)),
+                             carbsG: Number((item.catalog.carbsPer100g * (item.grams / 100)).toFixed(1)),
+                             fatG: Number((item.catalog.fatPer100g * (item.grams / 100)).toFixed(1)),
+                             catalogId: item.catalogId
+                           }
+                           const saved = await logNutritionEntry(payload)
+                           handleSaveSuccess(saved)
+                         }}
+                         className="w-full flex items-center justify-between p-3 mb-2 bg-gym-green-bg/5 border border-dashed border-gym-green-accent/30 rounded-xl group hover:bg-gym-green-bg/10 transition-colors"
+                       >
+                         <div className="text-left">
+                           <p className="text-[12px] font-bold text-gym-green-accent flex items-center gap-1">
+                             <Check className="w-3 h-3" /> {item.catalog.name} (Plan)
+                           </p>
+                           <p className="text-[10px] text-gym-secondary">Cargar {item.grams}g automáticmente</p>
+                         </div>
+                         <Zap className="w-4 h-4 text-gym-green-accent animate-pulse" />
+                       </button>
+                     ))}
+                   </div>
+                )}
+
+                {mealEntries.length === 0 && (!dietTemplate || !dietTemplate.items.some((i: any) => i.mealType === meal)) ? (
+                  <div className="py-6 text-center border border-dashed border-gym-border rounded-xl">
+                    <p className="text-[11px] text-gym-secondary">Sin registros</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {mealEntries.map(e => (
+                      <div key={e.id} className="group flex justify-between items-center bg-gym-dark-2 border border-gym-border/50 rounded-xl p-3 hover:border-gym-green-accent/30 transition-all shadow-sm">
+                        <div>
+                          <p className="text-[13px] font-bold text-gym-primary">{e.foodName}</p>
+                          <p className="text-[10px] text-gym-secondary">P: {e.proteinG}g · C: {e.carbsG}g · G: {e.fatG}g</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-[13px] font-bold text-gym-green-accent tabular-nums">{e.calories} <span className="text-[10px] font-normal opacity-70">kcal</span></span>
+                          <button 
+                            onClick={() => handleDeleteEntry(e.id)}
+                            className="p-2 text-gym-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )
         })}

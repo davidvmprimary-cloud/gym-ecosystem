@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Dumbbell, ChevronRight, TrendingUp, Apple, Moon, Settings2, LogOut, Camera, Calendar } from 'lucide-react'
+import { Plus, Dumbbell, ChevronRight, TrendingUp, Apple, Moon, Settings2, LogOut, Camera, Calendar, Utensils, Layout } from 'lucide-react'
 import { SliderDrawer } from '@/components/ui/SliderDrawer'
 import { MacrosDrawer } from '@/components/ui/MacrosDrawer'
 import { updateUserPreferences } from '@/app/actions/workout.actions'
@@ -9,6 +9,8 @@ import { SplitEditorDrawer } from '@/components/profile/SplitEditorDrawer'
 import { IdentityDrawer } from '@/components/profile/IdentityDrawer'
 import { BodyStatsDrawer } from '@/components/profile/BodyStatsDrawer'
 import { WeeklyScheduleDrawer } from '@/components/profile/WeeklyScheduleDrawer'
+import { FoodCatalogDrawer } from '@/components/profile/FoodCatalogDrawer'
+import { DietTemplateDrawer } from '@/components/profile/DietTemplateDrawer'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -35,6 +37,8 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
   const [isIdentityOpen, setIsIdentityOpen] = useState(false)
   const [isBodyStatsOpen, setIsBodyStatsOpen] = useState(false)
   const [isWeeklyScheduleOpen, setIsWeeklyScheduleOpen] = useState(false)
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false)
+  const [isDietOpen, setIsDietOpen] = useState(false)
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -155,6 +159,17 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
         onSave={handleSaveWeeklySchedule}
       />
 
+      <FoodCatalogDrawer 
+        isOpen={isCatalogOpen}
+        onClose={() => setIsCatalogOpen(false)}
+      />
+
+      <DietTemplateDrawer
+        isOpen={isDietOpen}
+        onClose={() => setIsDietOpen(false)}
+        user={user}
+      />
+
       {/* Training Program */}
       {!isLimited && (
         <section className="mb-10">
@@ -255,6 +270,16 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
               <ChevronRight className="w-4 h-4 text-gym-muted" />
             </button>
             
+            {/* Catalog Manager */}
+            <button onClick={() => setIsCatalogOpen(true)} className="w-full flex items-center px-4 h-[64px] border-b border-gym-border active:bg-gym-dark-2 text-left">
+              <Utensils className="w-5 h-5 text-gym-green-accent mr-4" />
+              <div className="flex-1">
+                <p className="text-[14px] text-gym-primary">Catálogo de Alimentos</p>
+                <p className="text-[11px] text-gym-secondary">Gestiona tus alimentos recurrentes</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gym-muted" />
+            </button>
+            
             {/* Nutrition Targets */}
             <button onClick={() => setIsMacrosOpen(true)} className="w-full flex items-center px-4 h-[64px] border-b border-gym-border active:bg-gym-dark-2 text-left">
               <Apple className="w-5 h-5 text-gym-green-accent mr-4" />
@@ -266,11 +291,21 @@ export function ProfileClient({ user, memberSince, isLimited = false }: { user: 
             </button>
             
             {/* Rest Days limits */}
-            <button onClick={() => setIsRestDaysOpen(true)} className="w-full flex items-center px-4 h-[64px] active:bg-gym-dark-2 text-left">
+            <button onClick={() => setIsRestDaysOpen(true)} className="w-full flex items-center px-4 h-[64px] border-b border-gym-border active:bg-gym-dark-2 text-left">
               <Moon className="w-5 h-5 text-gym-secondary mr-4" />
               <div className="flex-1">
                 <p className="text-[14px] text-gym-primary">Días de descanso máximo</p>
                 <p className="text-[11px] text-gym-secondary">{user.maxRestDays} días antes de reiniciar ciclo</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gym-muted" />
+            </button>
+
+            {/* Diet Template */}
+            <button onClick={() => setIsDietOpen(true)} className="w-full flex items-center px-4 h-[64px] active:bg-gym-dark-2 text-left">
+              <Layout className="w-5 h-5 text-gym-green-accent mr-4" />
+              <div className="flex-1">
+                <p className="text-[14px] text-gym-primary">Plan de Dieta Fija</p>
+                <p className="text-[11px] text-gym-secondary">Configura tu plantilla diaria recurrente</p>
               </div>
               <ChevronRight className="w-4 h-4 text-gym-muted" />
             </button>

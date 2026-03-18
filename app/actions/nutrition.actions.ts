@@ -9,10 +9,12 @@ const NutritionEntrySchema = z.object({
   date: z.string().datetime(),
   mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
   foodName: z.string().min(1),
+  grams: z.number().nonnegative(),
   calories: z.number().nonnegative(),
   proteinG: z.number().min(0),
   carbsG: z.number().min(0),
   fatG: z.number().min(0),
+  catalogId: z.string().uuid().optional(),
 })
 
 export async function logNutritionEntry(input: z.infer<typeof NutritionEntrySchema>) {
@@ -25,16 +27,31 @@ export async function logNutritionEntry(input: z.infer<typeof NutritionEntrySche
     data: {
       userId: user.id,
       date: new Date(parsed.date),
+      mealType: parsed.mealType,
+      foodName: parsed.foodName,
+      grams: parsed.grams,
       calories: parsed.calories,
       proteinG: parsed.proteinG,
       carbsG: parsed.carbsG,
       fatG: parsed.fatG,
-      notes: `${parsed.mealType}: ${parsed.foodName}` // Storing the structured data in notes for simplicity given existing schema
+      catalogId: parsed.catalogId,
     }
   })
 
   revalidatePath('/nutrition')
   return entry
+}
+
+export async function deleteNutritionEntry(id: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  await prisma.nutritionLog.delete({
+    where: { id, userId: user.id }
+  })
+
+  revalidatePath('/nutrition')
 }
 
 export async function getDailyNutrition(date: string) {
@@ -49,6 +66,7 @@ export async function getDailyNutrition(date: string) {
 
   return prisma.nutritionLog.findMany({
     where: { userId: user.id, date: { gte: start, lte: end } },
-    orderBy: { date: 'asc' }
+    orderBy: { date: 'asc' },
+    include: { catalog: true }
   })
 }
