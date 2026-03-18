@@ -8,7 +8,7 @@ import { ExerciseCard } from './ExerciseCard'
 import { finishWorkoutSession } from '@/app/actions/workout.actions'
 import { PRCelebration } from '@/components/shared/PRCelebration'
 import { RestTimerWidget } from '@/components/workout/RestTimerWidget'
-import { CloudUpload, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react'
+import { CloudUpload, ChevronLeft, ChevronRight, WifiOff, Check } from 'lucide-react'
 import { useSync } from '@/hooks/useSync'
 import { db } from '@/lib/db/local-db'
 
