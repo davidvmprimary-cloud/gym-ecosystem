@@ -200,11 +200,24 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex flex-col items-center">
-            <div className="flex items-center gap-1">
-              <span className="text-[11px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
-              {!isOnline && <WifiOff className="w-3 h-3 text-orange-500" />}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
+              <div className="flex items-center gap-1">
+                {(sets.length > 0 || unsavedCount > 0) ? (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-500 text-[9px] font-bold border border-orange-500/20">
+                    <span className="w-1 h-1 bg-orange-500 rounded-full pulse-dot"></span>
+                    PENDIENTE
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gym-green-bg/10 text-gym-green-bright text-[9px] font-bold border border-gym-green-bg/20">
+                    <Check className="w-2.5 h-2.5" />
+                    SINCRONIZADO
+                  </span>
+                )}
+                {!isOnline && <WifiOff className="w-3 h-3 text-orange-500" />}
+              </div>
             </div>
-            <h1 className="text-[14px] font-bold text-gym-green-accent uppercase">{split.name}</h1>
+            <h1 className="text-[14px] font-bold text-gym-green-accent uppercase mt-0.5">{split.name}</h1>
           </div>
           <button onClick={handleNextDay} className="p-1 text-gym-secondary hover:text-white transition-colors">
             <ChevronRight className="w-5 h-5" />
