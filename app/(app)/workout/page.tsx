@@ -24,12 +24,9 @@ export default async function WorkoutPage({ searchParams }: { searchParams: Prom
     console.error('Error auto-healing user in WorkoutPage:', e)
   }
 
-  // Fetch splits
-  const splits = await prisma.split.findMany({
-    where: { userId: user.id },
-    orderBy: { order: 'asc' },
-    include: { exercises: { orderBy: { order: 'asc' } } }
-  })
+  // Fetch splits with cache
+  const { getCachedUserSplits } = await import('@/lib/db/queries')
+  const splits = await getCachedUserSplits(user.id)
 
   if (splits.length === 0) {
     return (

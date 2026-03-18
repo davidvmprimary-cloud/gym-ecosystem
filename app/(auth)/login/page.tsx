@@ -38,7 +38,7 @@ export default function LoginPage() {
             <div className="relative group">
               <label 
                 className="text-[10px] uppercase tracking-[0.2em] text-fitness-bright font-black mb-2 block opacity-60 group-focus-within:opacity-100 transition-opacity" 
-                for="email"
+                htmlFor="email"
               >
                 Identificador
               </label>
@@ -58,7 +58,7 @@ export default function LoginPage() {
               <div className="flex justify-between items-end mb-2">
                 <label 
                   className="text-[10px] uppercase tracking-[0.2em] text-fitness-bright font-black block opacity-60 group-focus-within:opacity-100 transition-opacity" 
-                  for="password"
+                  htmlFor="password"
                 >
                   Acceso
                 </label>

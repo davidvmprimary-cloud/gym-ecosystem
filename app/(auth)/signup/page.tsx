@@ -49,7 +49,7 @@ export default async function SignupPage(props: {
             <div className="relative group">
               <label 
                 className="text-[10px] uppercase tracking-[0.2em] text-fitness-bright font-black mb-2 block opacity-60 group-focus-within:opacity-100 transition-opacity" 
-                for="email"
+                htmlFor="email"
               >
                 Identificador
               </label>
@@ -68,7 +68,7 @@ export default async function SignupPage(props: {
             <div className="relative group">
               <label 
                 className="text-[10px] uppercase tracking-[0.2em] text-fitness-bright font-black mb-2 block opacity-60 group-focus-within:opacity-100 transition-opacity" 
-                for="password"
+                htmlFor="password"
               >
                 Clave de Acceso
               </label>
