@@ -233,9 +233,13 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
         <GlobalProgressRing progress={+4.2} completed={completedExercises} total={split.exercises?.length || 0} />
 
         <section className="bg-gym-black">
-          {split.exercises.map((exercise: any, idx: number) => (
+          {split.exercises?.map((exercise: any, idx: number) => (
             <ExerciseCard key={exercise.id} exercise={exercise} isEven={idx % 2 !== 0} />
-          ))}
+          )) || (
+            <div className="p-8 text-center text-gym-secondary text-sm">
+              No se encontraron ejercicios para este split.
+            </div>
+          )}
         </section>
       </main>
 
