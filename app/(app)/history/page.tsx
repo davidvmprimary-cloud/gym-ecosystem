@@ -11,6 +11,8 @@ import { es } from 'date-fns/locale'
 import { getBodyWeightHistory } from '@/app/actions/user.actions'
 import { calculateCurrentStreak, calculateVolumeTrend } from '@/lib/utils/stats'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HistoryPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

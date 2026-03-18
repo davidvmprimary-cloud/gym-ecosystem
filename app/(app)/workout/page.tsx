@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma/client'
 import { redirect } from 'next/navigation'
 import { WorkoutSessionClient } from '@/components/workout/WorkoutSessionClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function WorkoutPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const resolvedParams = await searchParams
   const dateStr = typeof resolvedParams?.date === 'string' ? resolvedParams.date : undefined
