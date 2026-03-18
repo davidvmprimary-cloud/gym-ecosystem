@@ -72,7 +72,7 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
     }
   }, [isActive, splitId, split, startSession])
 
-  const handleFinish = async () => {
+  const handleFinish = async (options: { shouldRedirect?: boolean } = { shouldRedirect: true }) => {
     if (isFinishing) return
     setIsFinishing(true)
 
@@ -83,6 +83,8 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
           hybridSets.push({ id: crypto.randomUUID(), exerciseId: exId, weightKg: draft.weightKg, reps: draft.reps })
         }
       }
+
+      if (hybridSets.length === 0) return
 
       const grouped = hybridSets.reduce((acc, set) => {
         if (!acc[set.exerciseId]) {
@@ -104,30 +106,29 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
       if (!isOnline) {
         // OFFLINE SAVE
         await addPendingAction('SYNC_WORKOUT', payload)
-        // Simulate local finish
-        finishSession()
-        router.push('/history?offline=true')
+        if (options.shouldRedirect) {
+          finishSession()
+          router.push('/history?offline=true')
+        }
         return
       }
 
       const result = await finishWorkoutSession(payload)
 
-      if (Object.keys(result.newPRs).length > 0) {
-        const allTypes = Object.values(result.newPRs).flat()
-        const uniqueTypes = Array.from(new Set(allTypes))
-        
-        setPrTypes(uniqueTypes)
-        setShowPR(true)
-      } else {
-        finishSession()
-        router.push('/history')
+      if (options.shouldRedirect) {
+        if (Object.keys(result.newPRs).length > 0) {
+          const allTypes = Object.values(result.newPRs).flat()
+          const uniqueTypes = Array.from(new Set(allTypes))
+          
+          setPrTypes(uniqueTypes)
+          setShowPR(true)
+        } else {
+          finishSession()
+          router.push('/history')
+        }
       }
     } catch (e) {
       console.error(e)
-      // Fallback: save offline even if online action fails
-      const hybridSets = [...sets]
-      // ... (Grouping logic)
-      // await addPendingAction(...)
     } finally {
       setIsFinishing(false)
     }
@@ -224,11 +225,11 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
           </button>
         </div>
         <button 
-          onClick={handleFinish} 
+          onClick={() => handleFinish({ shouldRedirect: false })} 
           disabled={isFinishing || totalSetsCount === 0}
-          className="w-[80px] h-[34px] bg-gym-green-bg rounded-gym-pill flex items-center justify-center gap-1 text-[13px] font-semibold text-white disabled:opacity-50"
+          className="w-[80px] h-[34px] bg-gym-green-bg/20 border border-gym-green-bg/30 rounded-gym-pill flex items-center justify-center gap-1 text-[12px] font-bold text-gym-green-bright disabled:opacity-50"
         >
-          <CloudUpload className="w-4 h-4" />
+          <CloudUpload className="w-3.5 h-3.5" />
           Guardar
         </button>
       </header>
@@ -254,28 +255,27 @@ export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSince
             </div>
           )}
         </section>
-      </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 p-4 bg-gym-black/80 backdrop-blur-md border-t border-gym-border z-50 pb-safe">
-        <button 
-          onClick={handleFinish} 
-          disabled={isFinishing || totalSetsCount === 0} 
-          className="w-full h-14 bg-gym-green-bg rounded-gym flex flex-col items-center justify-center relative disabled:opacity-50"
-        >
-          <div className="flex items-center gap-2">
-            <CloudUpload className="w-5 h-5 text-white" />
-            <span className="text-[15px] font-semibold text-white">{isFinishing ? 'Guardando...' : 'Guardar Sesión'}</span>
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-1.5 h-1.5 bg-gym-green-bright rounded-full pulse-dot"></span>
-            <span className="text-[11px] text-white/80">
-              {totalSetsCount} series listas {unsavedCount > 0 && `(${unsavedCount} drafts)`}
-            </span>
-          </div>
-        </button>
-        {/* iOS Home Indicator Spacer if needed */}
-        <div className="h-4"></div>
-      </footer>
+        {/* Action Button - Now at the bottom of content */}
+        <div className="p-4 bg-gym-black pb-24">
+          <button 
+            onClick={() => handleFinish({ shouldRedirect: true })} 
+            disabled={isFinishing || totalSetsCount === 0} 
+            className="w-full h-16 bg-gym-green-bg rounded-gym flex flex-col items-center justify-center relative shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            <div className="flex items-center gap-2">
+              <CloudUpload className="w-5 h-5 text-white" />
+              <span className="text-[16px] font-bold text-white tracking-wide">{isFinishing ? 'GUARDANDO...' : 'FINALIZAR SESIÓN'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-1.5 h-1.5 bg-gym-green-bright rounded-full pulse-dot"></span>
+              <span className="text-[11px] text-white/70 font-medium uppercase tracking-wider">
+                {totalSetsCount} series completadas {unsavedCount > 0 && `(${unsavedCount} borrador)`}
+              </span>
+            </div>
+          </button>
+        </div>
+      </main>
     </>
   )
 }
