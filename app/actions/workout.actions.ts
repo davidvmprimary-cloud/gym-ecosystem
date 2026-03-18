@@ -49,7 +49,7 @@ export async function finishWorkoutSession(input: z.infer<typeof FinishSessionSc
   // 4. Calcular % de progreso vs sesión anterior
   let progressPct = 0
   if (previousSession && previousSession.sets) {
-    const prevVolume = previousSession.sets.reduce((sum, s) => sum + ((s as any).volume || 0), 0)
+    const prevVolume = previousSession.sets.reduce((sum, s) => sum + (s.volume || 0), 0)
     progressPct = prevVolume > 0 ? ((totalVolume - prevVolume) / prevVolume) * 100 : 0
   }
 
@@ -62,7 +62,7 @@ export async function finishWorkoutSession(input: z.infer<typeof FinishSessionSc
     totalVolume,
     progressPct,
     sets: { create: allSets }
-  } as any)
+  })
 
   // 6. Verificar PRs por cada set
   const prResults: Record<string, string[]> = {}
@@ -80,7 +80,7 @@ export async function finishWorkoutSession(input: z.infer<typeof FinishSessionSc
     })
     if (newPRs.length > 0) {
       // Marcar el set como PR
-      await prisma.set.update({ where: { id: set.id }, data: { isPersonalRecord: true } as any })
+      await prisma.set.update({ where: { id: set.id }, data: { isPersonalRecord: true } })
       prResults[set.exerciseId] = newPRs
     }
   }
