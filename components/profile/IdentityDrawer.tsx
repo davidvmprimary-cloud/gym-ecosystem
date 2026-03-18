@@ -16,6 +16,8 @@ export function IdentityDrawer({ isOpen, onClose, currentName, currentAvatar }: 
   const [name, setName] = useState(currentName)
   const [avatarUrl, setAvatarUrl] = useState(currentAvatar)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     setName(currentName)
@@ -31,6 +33,37 @@ export function IdentityDrawer({ isOpen, onClose, currentName, currentAvatar }: 
       console.error(e)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    setUploadError(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to upload')
+      }
+
+      const data = await res.json()
+      setAvatarUrl(data.url)
+    } catch (err: any) {
+      console.error('Upload failed:', err)
+      setUploadError(err.message)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -101,17 +134,47 @@ export function IdentityDrawer({ isOpen, onClose, currentName, currentAvatar }: 
                 />
               </div>
 
-              {/* Avatar URL Input */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-medium uppercase tracking-wide text-gym-secondary px-1">URL de Foto de Perfil</label>
-                <input 
-                  type="text" 
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full h-14 bg-gym-dark-2 border border-gym-border rounded-gym px-4 text-[15px] text-gym-primary focus:border-gym-green-accent outline-none transition-colors shadow-inner"
-                />
-                <p className="text-[10px] text-gym-muted px-1 italic">Ingresa una URL directa a tu imagen (JPG, PNG o WebP).</p>
+              {/* Avatar Upload */}
+              <div className="space-y-4">
+                <label className="text-[11px] font-medium uppercase tracking-wide text-gym-secondary px-1">Foto de Perfil</label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label 
+                      htmlFor="avatar-upload"
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-gym-border border-dashed rounded-gym cursor-pointer bg-gym-dark-2 hover:bg-gym-dark-3 transition-all group overflow-hidden"
+                    >
+                      {isUploading ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-6 h-6 border-2 border-gym-green-accent border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-[10px] text-gym-secondary font-bold uppercase tracking-widest">Subiendo...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Camera className="w-8 h-8 text-gym-muted mb-2 group-hover:text-gym-green-accent transition-colors" />
+                            <p className="text-[10px] text-gym-secondary font-bold uppercase tracking-widest">Seleccionar Imagen</p>
+                        </div>
+                      )}
+                      <input 
+                        id="avatar-upload" 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={isUploading}
+                      />
+                    </label>
+                  </div>
+                  {avatarUrl && (
+                    <button 
+                      onClick={() => setAvatarUrl('')}
+                      className="text-red-500 text-[10px] font-bold uppercase tracking-widest h-fit"
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+                {uploadError && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest text-center">{uploadError}</p>}
+                <p className="text-[10px] text-gym-muted px-1 italic">La imagen se subirá automáticamente al seleccionarla.</p>
               </div>
             </div>
           </motion.div>
