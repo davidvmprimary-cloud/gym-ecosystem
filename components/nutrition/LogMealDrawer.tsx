@@ -43,21 +43,30 @@ export function LogMealDrawer({ isOpen, onClose, mealType, selectedDate, onSaveS
         fatG: Number(fat || 0)
       }
       
-      const saved = await logNutritionEntry(entry)
+      let savedId = crypto.randomUUID()
+      let finalEntry = null
+
+      try {
+        const saved = await logNutritionEntry(entry)
+        savedId = saved.id
+        finalEntry = saved
+      } catch (e) {
+        console.warn('[Offline] Failed to save to server, using local ID', e)
+      }
       
       const mapped = {
-        id: saved.id,
+        id: savedId,
         mealType: mealType,
         foodName: foodName,
-        calories: saved.calories,
-        proteinG: saved.proteinG,
-        carbsG: saved.carbsG,
-        fatG: saved.fatG
+        calories: Number(calories),
+        proteinG: Number(protein || 0),
+        carbsG: Number(carbs || 0),
+        fatG: Number(fat || 0)
       }
       
       onSaveSuccess(mapped)
       
-      // Reset form
+      // Reset form & Close
       setFoodName('')
       setCalories('')
       setProtein('')

@@ -121,6 +121,7 @@ export default async function WorkoutPage({ searchParams }: { searchParams: Prom
     <div className="min-h-screen bg-gym-black text-gym-primary">
       <WorkoutSessionClient 
         split={todaySplit} 
+        allSplits={splits}
         daysSinceLastSession={daysSinceLastSession} 
         todayLabel={todayLabel} 
         currentDateStr={currentDateISO}

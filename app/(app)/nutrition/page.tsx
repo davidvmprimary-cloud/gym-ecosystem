@@ -6,6 +6,8 @@ import { MacroBalance } from '@/components/nutrition/MacroBalance'
 import { useNutritionStore } from '@/lib/stores/nutrition.store'
 import { getDailyNutrition, logNutritionEntry } from '@/app/actions/nutrition.actions'
 import { LogMealDrawer } from '@/components/nutrition/LogMealDrawer'
+import { useSync } from '@/hooks/useSync'
+import { db } from '@/lib/db/local-db'
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 const MEAL_LABELS: Record<string, string> = {
@@ -20,26 +22,44 @@ export default function NutritionPage() {
   const [targets, setTargets] = useState({ calories: 2500, protein: 160, carbs: 280, fat: 80 })
   const [isLogMealOpen, setIsLogMealOpen] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState('breakfast')
+  const { isOnline, addPendingAction } = useSync()
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => { setMounted(true) }, [])
   
   // Use state for local date object to format it easily
   const dateObj = new Date(selectedDate)
 
   useEffect(() => {
     async function loadData() {
-      try {
-        const data = await getDailyNutrition(selectedDate)
-        // map data to NutritionEntry
-        setEntries(data.map(d => ({
-          id: d.id,
-          mealType: (d.notes?.split(':')[0] as any) || 'snack',
-          foodName: d.notes?.split(':')[1]?.trim() || 'Comida',
-          calories: d.calories,
-          proteinG: d.proteinG,
-          carbsG: d.carbsG,
-          fatG: d.fatG
-        })))
-      } catch (e) {
-        console.error(e)
+      // 1. Try to load from Local Cache first (Fast UI)
+      const cached = await db.cachedNutrition.get(selectedDate)
+      if (cached) {
+        setEntries(cached.entries)
+      }
+
+      if (isOnline) {
+        try {
+          const data = await getDailyNutrition(selectedDate)
+          const mapped = data.map(d => ({
+            id: d.id,
+            mealType: (d.notes?.split(':')[0] as any) || 'snack',
+            foodName: d.notes?.split(':')[1]?.trim() || 'Comida',
+            calories: d.calories,
+            proteinG: d.proteinG,
+            carbsG: d.carbsG,
+            fatG: d.fatG
+          }))
+          setEntries(mapped)
+          // Update Cache
+          await db.cachedNutrition.put({
+            date: selectedDate,
+            entries: mapped,
+            updatedAt: Date.now()
+          })
+        } catch (e) {
+          console.error(e)
+        }
       }
     }
     async function loadUserTargets() {
@@ -79,9 +99,35 @@ export default function NutritionPage() {
     setIsLogMealOpen(true)
   }
 
-  const handleSaveSuccess = (mappedEntry: any) => {
+  const handleSaveSuccess = async (mappedEntry: any) => {
+    // 1. Update store for Optimistic UI
     useNutritionStore.getState().addEntry(mappedEntry)
+    
+    // 2. Update local cache immediately
+    const currentEntries = useNutritionStore.getState().entries
+    await db.cachedNutrition.put({
+      date: selectedDate,
+      entries: currentEntries,
+      updatedAt: Date.now()
+    })
+
+    // 3. If offline, queue the sync
+    if (!isOnline) {
+      // Reconstruct payload for syncing
+      const payload = {
+        date: new Date(selectedDate).toISOString(),
+        mealType: mappedEntry.mealType,
+        foodName: mappedEntry.foodName,
+        calories: mappedEntry.calories,
+        proteinG: mappedEntry.proteinG,
+        carbsG: mappedEntry.carbsG,
+        fatG: mappedEntry.fatG
+      }
+      await addPendingAction('SYNC_NUTRITION', payload)
+    }
   }
+
+  if (!mounted) return null // Prevent hydration mismatch
 
   const dateLabel = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'short' }).format(dateObj)
 

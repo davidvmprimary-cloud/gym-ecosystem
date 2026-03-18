@@ -1,4 +1,5 @@
 import { BottomNav } from '@/components/shared/BottomNav'
+import { SyncStatus } from '@/components/shared/SyncStatus'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -16,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col bg-gym-black pb-32 text-gym-primary font-sans selection:bg-gym-green-bg selection:text-white">
+      <SyncStatus />
       <main className="flex-1">{children}</main>
       <BottomNav />
     </div>

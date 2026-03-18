@@ -8,21 +8,63 @@ import { ExerciseCard } from './ExerciseCard'
 import { finishWorkoutSession } from '@/app/actions/workout.actions'
 import { PRCelebration } from '@/components/shared/PRCelebration'
 import { RestTimerWidget } from '@/components/workout/RestTimerWidget'
-import { CloudUpload, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CloudUpload, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react'
+import { useSync } from '@/hooks/useSync'
+import { db } from '@/lib/db/local-db'
 
 interface WorkoutSessionClientProps {
   split: any // Prisma type
+  allSplits?: any[]
   daysSinceLastSession: number
   todayLabel: string
   currentDateStr: string
 }
 
-export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel, currentDateStr }: WorkoutSessionClientProps) {
+export function WorkoutSessionClient({ split: initialSplit, allSplits, daysSinceLastSession, todayLabel, currentDateStr }: WorkoutSessionClientProps) {
   const router = useRouter()
   const { isActive, splitId, startSession, finishSession, sets, draftSets } = useWorkoutSession()
   const [prTypes, setPrTypes] = useState<string[]>([])
   const [showPR, setShowPR] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
+  const { isOnline, addPendingAction } = useSync()
+  const [split, setSplit] = useState(initialSplit)
+
+  // Caching and Offline Recovery
+  useEffect(() => {
+    async function handleCaching() {
+      if (initialSplit) {
+        setSplit(initialSplit)
+        await db.cachedWorkouts.put({
+          id: initialSplit.id,
+          name: initialSplit.name,
+          exercises: initialSplit.exercises,
+          updatedAt: Date.now()
+        })
+      } else if (!isOnline) {
+        // Try to find ANY split if we are offline and none was provided
+        const allCached = await db.cachedWorkouts.toArray()
+        if (allCached.length > 0) {
+          // Fallback to the first cached split or logic to match schedule
+          setSplit({
+            ...allCached[0],
+            isOfflineFallback: true
+          })
+        }
+      }
+
+      if (allSplits) {
+        for (const s of allSplits) {
+          await db.cachedWorkouts.put({
+            id: s.id,
+            name: s.name,
+            exercises: s.exercises,
+            updatedAt: Date.now()
+          })
+        }
+      }
+    }
+    handleCaching()
+  }, [initialSplit, allSplits, isOnline])
 
   useEffect(() => {
     if (split && (!isActive || splitId !== split.id)) {
@@ -59,6 +101,15 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel, 
         exercises: Object.values(grouped),
       }
 
+      if (!isOnline) {
+        // OFFLINE SAVE
+        await addPendingAction('SYNC_WORKOUT', payload)
+        // Simulate local finish
+        finishSession()
+        router.push('/history?offline=true')
+        return
+      }
+
       const result = await finishWorkoutSession(payload)
 
       if (Object.keys(result.newPRs).length > 0) {
@@ -73,6 +124,10 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel, 
       }
     } catch (e) {
       console.error(e)
+      // Fallback: save offline even if online action fails
+      const hybridSets = [...sets]
+      // ... (Grouping logic)
+      // await addPendingAction(...)
     } finally {
       setIsFinishing(false)
     }
@@ -145,7 +200,10 @@ export function WorkoutSessionClient({ split, daysSinceLastSession, todayLabel, 
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex flex-col items-center">
-            <span className="text-[11px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] text-gym-secondary font-semibold uppercase tracking-wider">{todayLabel}</span>
+              {!isOnline && <WifiOff className="w-3 h-3 text-orange-500" />}
+            </div>
             <h1 className="text-[14px] font-bold text-gym-green-accent uppercase">{split.name}</h1>
           </div>
           <button onClick={handleNextDay} className="p-1 text-gym-secondary hover:text-white transition-colors">

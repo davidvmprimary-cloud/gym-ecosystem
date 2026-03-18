@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Scale, Ruler, CalendarDays } from 'lucide-react'
 import { logBodyStats } from '@/app/actions/user.actions'
+import { useSync } from '@/hooks/useSync'
 
 interface BodyStatsDrawerProps {
   isOpen: boolean
@@ -14,25 +15,33 @@ interface BodyStatsDrawerProps {
 }
 
 export function BodyStatsDrawer({ isOpen, onClose, currentWeight, currentHeight, currentBirthDate }: BodyStatsDrawerProps) {
-  const [weight, setWeight] = useState(currentWeight || 0)
-  const [height, setHeight] = useState(currentHeight || 0)
-  const [birthDate, setBirthDate] = useState(currentBirthDate || '')
+  const [weight, setWeight] = useState<number | ''>(currentWeight || '')
+  const [height, setHeight] = useState<number | ''>(currentHeight || '')
+  const [birthDate, setBirthDate] = useState<string>(currentBirthDate ? new Date(currentBirthDate).toISOString().split('T')[0] : '')
   const [isSaving, setIsSaving] = useState(false)
+  const { isOnline, addPendingAction } = useSync()
 
   useEffect(() => {
-    setWeight(currentWeight || 0)
-    setHeight(currentHeight || 0)
+    setWeight(currentWeight || '')
+    setHeight(currentHeight || '')
     setBirthDate(currentBirthDate ? new Date(currentBirthDate).toISOString().split('T')[0] : '')
   }, [isOpen, currentWeight, currentHeight, currentBirthDate])
 
   const handleSave = async () => {
     setIsSaving(true)
+    const payload = { 
+      weightKg: weight === '' ? undefined : Number(weight), 
+      heightCm: height === '' ? undefined : Number(height),
+      birthDate: birthDate || undefined
+    }
+
     try {
-      await logBodyStats({ 
-        weightKg: Number(weight), 
-        heightCm: Number(height),
-        birthDate: birthDate ? birthDate : undefined
-      })
+      if (!isOnline) {
+        await addPendingAction('SYNC_BODY_STATS', payload)
+        onClose()
+        return
+      }
+      await logBodyStats(payload)
       onClose()
     } catch (e) {
       console.error(e)
