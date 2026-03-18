@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Elite Fitness - Iniciar Sesión</title>
+    <!-- Load Tailwind CSS v3 with plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'fitness-bg': '#0C0C0C',
+                        'fitness-surface': '#141414',
+                        'fitness-accent': '#3D6B47',
+                        'fitness-bright': '#4E8B5F',
+                        'fitness-glow': '#5FA870',
+                        'fitness-text': '#F0F0F0',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style data-purpose="custom-typography">
+        body {
+            background-color: #0C0C0C;
+            color: #F0F0F0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+    <style data-purpose="avant-garde-elements">
+        /* Subtle glow for the mascot container */
+        .mascot-glow {
+            box-shadow: 0 0 40px 5px rgba(95, 168, 112, 0.15);
+        }
+
+        /* Neo-brutalist experimental button shape */
+        .btn-experimental {
+            clip-path: polygon(0% 0%, 95% 0%, 100% 25%, 100% 100%, 5% 100%, 0% 75%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-experimental:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        /* Asymmetric input focus animation */
+        .input-underline {
+            position: relative;
+            border-bottom: 1px solid #222;
+        }
+
+        .input-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background-color: #3D6B47;
+            transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        input:focus+.input-underline::after {
+            width: 100%;
+        }
+
+        /* Glassmorphism for the character container */
+        .glass-container {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        /* Constraint for a 3:4 aspect ratio feel on mobile */
+        .app-container {
+            max-width: 450px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-8">
+    <!-- Background Elements -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-fitness-accent opacity-[0.03] rounded-full blur-[120px]">
+        </div>
+    </div>
+    <div class="app-container relative z-10">
+        <!-- Header -->
+        <header class="flex flex-col items-center mb-16">
+            <div
+                class="glass-container mascot-glow w-24 h-24 rounded-2xl flex items-center justify-center p-4 relative mb-6">
+                <svg class="text-fitness-glow" fill="none" height="40" viewbox="0 0 24 24" width="40"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L15 8H21L16 12L18 18L12 14L6 18L8 12L3 8H9L12 2Z" stroke="currentColor"
+                        stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"></path>
+                    <circle cx="12" cy="11" fill="currentColor" opacity="0.3" r="2"></circle>
+                </svg>
+            </div>
+            <div class="text-center">
+                <h1 class="text-zinc-400 text-sm font-medium tracking-[0.2em] uppercase">Bienvenido de nuevo</h1>
+            </div>
+        </header>
+        <!-- Main Content -->
+        <main>
+            <form class="space-y-12" id="login-form">
+                <!-- Email Field -->
+                <div class="relative">
+                    <label
+                        class="text-[10px] uppercase tracking-[0.2em] text-fitness-bright font-bold mb-2 block opacity-80"
+                        for="email">Identificador</label>
+                    <input
+                        class="w-full bg-transparent border-none p-0 py-3 focus:ring-0 text-fitness-text placeholder:text-zinc-800 font-medium tracking-tight text-lg"
+                        id="email" placeholder="USER@ELITE.SYSTEM" required="" type="email" />
+                    <div class="input-underline"></div>
+                </div>
+                <!-- Password Field -->
+                <div class="relative">
+                    <div class="flex justify-between items-end mb-2">
+                        <label
+                            class="text-[10px] uppercase tracking-[0.2em] text-fitness-bright font-bold block opacity-80"
+                            for="password">Acceso</label>
+                        <a class="text-[9px] uppercase tracking-tighter text-zinc-600 hover:text-fitness-bright transition-colors"
+                            href="#">¿Olvido?</a>
+                    </div>
+                    <input
+                        class="w-full bg-transparent border-none p-0 py-3 focus:ring-0 text-fitness-text placeholder:text-zinc-800 font-medium tracking-[0.3em] text-lg"
+                        id="password" placeholder="••••••••" required="" type="password" />
+                    <div class="input-underline"></div>
+                </div>
+                <!-- Action Button -->
+                <div class="pt-6">
+                    <button
+                        class="btn-experimental w-full bg-fitness-bright py-6 px-8 text-fitness-bg font-black text-base uppercase tracking-[0.25em]"
+                        data-purpose="submit-button" type="submit">
+                        INICIAR SESIÓN
+                    </button>
+                </div>
+            </form>
+        </main>
+        <!-- Footer -->
+        <footer class="mt-16 text-center">
+            <p class="text-zinc-600 text-[10px] uppercase tracking-widest">
+                ¿Eres nuevo? <a class="text-fitness-bright font-bold ml-1" href="#">CREAR ACCESO</a>
+            </p>
+        </footer>
+    </div>
+    <script data-purpose="form-interactions">
+        const form = document.getElementById('login-form');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('[data-purpose="submit-button"]');
+            const originalText = btn.textContent;
+            btn.textContent = "PROCESANDO...";
+            btn.style.opacity = "0.7";
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.opacity = "1";
+            }, 2000);
+        });
+    </script>
+</body>
+
+</html>

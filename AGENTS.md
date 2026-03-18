@@ -30,3 +30,10 @@ Si un usuario se autentica por primera vez, se crea el registro en Supabase Auth
 Si limpias o reseteas la base de datos de datos, debes:
 - Limpiar también los usuarios desde el panel de Supabase Auth (borrarlos) para forzarlos a registrarse de nuevo, O
 - Asegurarte de que el inicio de sesión del usuario en tu código valide y recree la fila de `User` en caso de que su UID de Supabase no exista en Prisma.
+
+---
+
+### 4. Arquitectura y Escalabilidad (State of the Art)
+- **Mentalidad de Raíces:** No busques solo "parchear" el problema inmediato. Cada solución debe ser analizada desde una perspectiva de arquitectura escalable. Si un problema se repite o parece un síntoma de algo más profundo, busca establecer "buenas raíces" en la estructura del código.
+- **Robustez:** Implementa patrones que eviten la regresión de errores. Utiliza tipos fuertes, inyección de dependencias (donde sea apropiado) y capas de abstracción claras (como Repositories) para separar la lógica de negocio del acceso a datos.
+- **Evolución:** Las soluciones deben estar preparadas para el crecimiento de la app. Evita acoplamientos innecesarios y prefiere soluciones que sean estándares de la industria o "state of the art" en el ecosistema (ej. Next.js App Router, Prisma, TypeScript estricto).
