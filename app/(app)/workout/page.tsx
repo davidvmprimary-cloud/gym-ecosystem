@@ -55,7 +55,11 @@ export default async function WorkoutPage({ searchParams }: { searchParams: Prom
   const latestSession = await prisma.session.findFirst({
     where: { userId: user.id },
     orderBy: { date: 'desc' },
-    include: { split: true }
+    include: { 
+      split: {
+        include: { exercises: { orderBy: { order: 'asc' } } }
+      }
+    }
   })
 
   let nextSplitIndex = 0
@@ -90,7 +94,11 @@ export default async function WorkoutPage({ searchParams }: { searchParams: Prom
       date: { gte: targetDateStart, lt: nextDay }
     },
     orderBy: { date: 'desc' },
-    include: { split: true }
+    include: { 
+      split: {
+        include: { exercises: { orderBy: { order: 'asc' } } }
+      }
+    }
   })
 
   let todaySplit: any = null
