@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { login } from '../actions'
 
+export const dynamic = 'force-dynamic'
+
 export default function LoginPage() {
   return (
     <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-6 shadow-xl">
