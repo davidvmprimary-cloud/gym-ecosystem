@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { login } from '../actions'
 import Image from 'next/image'
